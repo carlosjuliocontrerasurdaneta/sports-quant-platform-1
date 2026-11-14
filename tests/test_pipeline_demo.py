@@ -111,27 +111,32 @@ def test_shadow_mode_records_picks_with_zero_stake():
     # Shadow mode (2026-07-04): the pipeline selects picks exactly as in real
     # mode (selection still requires a would-be-staked candidate) but forces
     # stake 0, so CLV / calibration evidence accrues without risking capital.
+    #
+    # 2026-11-14: el demo MLB solo da filas `low_reliability` (abridor sin
+    # muestra), asi que con MLB solo el test era vacuo. El demo NHL (semilla
+    # fija de SyntheticProvider) da filas fiables, y en el se EXIGE al menos
+    # una fila `shadow_mode`.
     from sqp.pipeline.daily import ROOT
-    settings = Settings.load()
-    settings.shadow_mode = True
-    run_league("mlb", settings, mode="demo")
-    f = ROOT / "data" / "predictions" / "demo" / "candidates_mlb.csv"
-    if not f.exists():
-        return  # no candidates at all -> rule holds vacuously
-    c = pd.read_csv(f)
-    assert (c["stake"] <= 0).all()
-    assert (c["kelly_stake_pct"] <= 0).all()
-    flags = c["flags"].fillna("").map(lambda f: ";".join(t for t in f.split(";") if t not in ("uncalibrated", "low_reliability")))
-    # every row carries its zero-stake reason; more specific flags win
-    assert flags.isin(["shadow_mode", "market_paused",
-                       "edge_exceeds_max_plausible"]).all()
-    # Las filas `low_reliability` (equipo/abridor sin muestra; desde 2026-11-13 se
-    # CONSERVAN a stake 0 en vez de descartarse) nunca habrian llevado stake, asi
-    # que no pueden ser las filas "shadow": el aserto aplica a las fiables. Antes
-    # el test pasaba en vacio porque el demo MLB las descartaba todas.
-    fiables = ~c["flags"].fillna("").str.contains("low_reliability")
-    if fiables.any():
-        assert (flags[fiables] == "shadow_mode").any()
+    filas_shadow_fiables = 0
+    for league in ("mlb", "nhl"):
+        settings = Settings.load()
+        settings.shadow_mode = True
+        run_league(league, settings, mode="demo")
+        f = ROOT / "data" / "predictions" / "demo" / f"candidates_{league}.csv"
+        if not f.exists():
+            continue
+        c = pd.read_csv(f)
+        assert (c["stake"] <= 0).all(), league
+        assert (c["kelly_stake_pct"] <= 0).all(), league
+        flags = c["flags"].fillna("").map(lambda f: ";".join(t for t in f.split(";") if t not in ("uncalibrated", "low_reliability")))
+        # every row carries its zero-stake reason; more specific flags win
+        assert flags.isin(["shadow_mode", "market_paused",
+                           "edge_exceeds_max_plausible"]).all(), league
+        # Las filas `low_reliability` (desde 2026-11-13 se CONSERVAN a stake 0)
+        # nunca habrian llevado stake: no pueden ser las filas "shadow".
+        fiables = ~c["flags"].fillna("").str.contains("low_reliability")
+        filas_shadow_fiables += int((flags[fiables] == "shadow_mode").sum())
+    assert filas_shadow_fiables > 0, "ninguna fila fiable en shadow: el test volveria a ser vacuo"
 
 
 def test_archive_existing_preserves_prior_picks(tmp_path: Path):

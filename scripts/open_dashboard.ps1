@@ -53,23 +53,53 @@ if (-not (Test-Path $logsDir)) { New-Item -ItemType Directory -Path $logsDir | O
 $py = $env:SQP_PYTHON
 if (-not $py -or -not (Test-Path $py)) { $py = 'C:\Users\Richard\AppData\Local\Programs\Python\Python314\python.exe' }
 if (-not (Test-Path $py)) { $py = 'python' }
+#
+# Tiempo acotado (2026-11-14): la tarea tiene ExecutionTimeLimit PT5M y
+# health_check.py llega a tardar ~2 min (la consulta al Programador tiene su
+# propio timeout de 120 s). Si se pasaba de los 5 min, el Programador mataba la
+# tarea (0x41306) ANTES de abrir el tablero y de escribir el marcador. Ahora el
+# health_check se corta a los SQP_DASHBOARD_HEALTH_TIMEOUT_S (180 por defecto)
+# y el tablero se abre igual.
 $healthLog = Join-Path $logsDir 'open_dashboard.log'
 $healthRc = $null
+$healthTimeout = 180
+if ($env:SQP_DASHBOARD_HEALTH_TIMEOUT_S) { $healthTimeout = [int]$env:SQP_DASHBOARD_HEALTH_TIMEOUT_S }
+$healthOut = Join-Path $logsDir 'open_dashboard_health.tmp.out'
+$healthErr = Join-Path $logsDir 'open_dashboard_health.tmp.err'
 try {
     $env:PYTHONPATH = 'src'
-    Push-Location $root
-    & $py 'scripts\health_check.py' 2>&1 | Out-File -Append -FilePath $healthLog -Encoding utf8
-    $healthRc = $LASTEXITCODE
+    $proc = Start-Process -FilePath $py -ArgumentList 'scripts\health_check.py' -WorkingDirectory $root `
+        -RedirectStandardOutput $healthOut -RedirectStandardError $healthErr -NoNewWindow -PassThru
+    # Sin cachear el handle, ExitCode sale vacio tras WaitForExit en PS 5.1.
+    $null = $proc.Handle
+    if ($proc.WaitForExit($healthTimeout * 1000)) {
+        $healthRc = $proc.ExitCode
+    } else {
+        try { $proc.Kill() } catch { }
+        "[open_dashboard] health_check.py supero $healthTimeout s; se corta y se abre el tablero igual." | Out-File -Append -FilePath $healthLog -Encoding utf8
+    }
 } catch {
     "[open_dashboard] health_check.py no pudo ejecutarse: $_" | Out-File -Append -FilePath $healthLog -Encoding utf8
 } finally {
-    Pop-Location
+    foreach ($f in @($healthErr, $healthOut)) {
+        if (Test-Path $f) {
+            Get-Content $f -ErrorAction SilentlyContinue | Out-File -Append -FilePath $healthLog -Encoding utf8
+            Remove-Item $f -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 # (2) El reporte de un dia anterior se abre IGUAL, con aviso: un tablero viejo
 # a la vista es una senal; ninguno, un silencio identico al de un sistema sano.
+#
+# El tablero se abre y el marcador se escribe ANTES del cuadro modal
+# (2026-11-14): MessageBox bloquea hasta que alguien pulsa OK; sin nadie
+# delante, el limite de 5 min de la tarea la mataba (0x41306) sin haber abierto
+# el reporte.
 $lastWrite = (Get-Item $report).LastWriteTime
 $isToday = $lastWrite.Date -eq (Get-Date).Date
+if (-not $sinUI) { Start-Process $report }
+Set-Content -Path $marker -Value (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') -Encoding utf8
 if ((-not $isToday) -or ($healthRc -eq 1)) {
     if (-not $isToday) {
         $razon = "El reporte diario NO es de hoy (ultimo: $($lastWrite.ToString('yyyy-MM-dd HH:mm'))): el run diario no se ha ejecutado hoy."
@@ -86,9 +116,6 @@ if ((-not $isToday) -or ($healthRc -eq 1)) {
         Write-Output "[open_dashboard] (sin cuadro de aviso: $_)"
     }
 }
-
-if (-not $sinUI) { Start-Process $report }
-Set-Content -Path $marker -Value (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') -Encoding utf8
 
 # Limpieza de marcadores viejos (>7 dias) para no acumular flags en logs\.
 Get-ChildItem $logsDir -Filter 'dashboard_shown_*.flag' -ErrorAction SilentlyContinue |

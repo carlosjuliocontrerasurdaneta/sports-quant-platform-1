@@ -1056,3 +1056,97 @@ def test_aud004_fable_followup_escapes_are_blocked(tmp_path, plantilla):
     result = _run(root, {"tool_name": "PowerShell", "tool_input": {"command": command}})
     assert result.returncode == 2, (command, result.stderr)
     assert "configs/x.yaml" in result.stderr
+
+
+# --- KI-080: commit desde otro `git worktree` del mismo repositorio ----------
+# Antes, el candado solo leia el registro de `CLAUDE_PROJECT_DIR` (produccion):
+# un commit revisado y lanzado con `cd <worktree> && git commit` se bloqueaba.
+
+def _worktree_con_sensible(tmp_path: Path) -> tuple[Path, Path]:
+    principal = tmp_path / "principal"
+    principal.mkdir()
+    root = _repo(principal)
+    (root / "README.md").write_text("x", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=root, check=True,
+                   capture_output=True)
+    wt = tmp_path / "wt"
+    subprocess.run(["git", "worktree", "add", "-q", "-b", "rama-wt", str(wt)],
+                   cwd=root, check=True, capture_output=True)
+    (wt / ".claude" / "automation" / "runtime").mkdir(parents=True, exist_ok=True)
+    _stage_sensitive_file(wt)
+    return root, wt
+
+
+def _cmd_en_worktree(wt: Path) -> str:
+    return f'cd "{wt.as_posix()}" && git commit -m "msg"'
+
+
+def test_ki080_review_line_in_the_worktree_record_covers_its_commit(tmp_path):
+    root, wt = _worktree_con_sensible(tmp_path)
+    _current_task(root)
+    _current_task(wt, (f"FABLE-REVIEW: {HOY} | veredicto: APTO | rutas: configs/x.yaml",))
+    result = _run(root, {"tool_name": "Bash", "tool_input": {"command": _cmd_en_worktree(wt)}})
+    assert result.returncode == 0, result.stderr
+
+
+def test_ki080_worktree_commit_without_any_review_line_still_blocks(tmp_path):
+    root, wt = _worktree_con_sensible(tmp_path)
+    _current_task(root)
+    _current_task(wt)
+    result = _run(root, {"tool_name": "Bash", "tool_input": {"command": _cmd_en_worktree(wt)}})
+    assert result.returncode == 2
+    assert "configs/x.yaml" in result.stderr
+
+
+def test_ki080_production_record_still_covers_a_worktree_commit(tmp_path):
+    root, wt = _worktree_con_sensible(tmp_path)
+    _current_task(root, (f"FABLE-REVIEW: {HOY} | veredicto: APTO | rutas: configs/x.yaml",))
+    result = _run(root, {"tool_name": "Bash", "tool_input": {"command": _cmd_en_worktree(wt)}})
+    assert result.returncode == 0, result.stderr
+
+
+def test_ki080_record_of_an_unrelated_repo_does_not_count(tmp_path):
+    principal = tmp_path / "principal"
+    principal.mkdir()
+    root = _repo(principal)
+    otro = tmp_path / "otro"
+    otro.mkdir()
+    _repo(otro)
+    _stage_sensitive_file(otro)
+    _current_task(root)
+    _current_task(otro, (f"FABLE-REVIEW: {HOY} | veredicto: APTO | rutas: configs/x.yaml",))
+    result = _run(root, {"tool_name": "Bash", "tool_input": {"command": _cmd_en_worktree(otro)}})
+    assert result.returncode == 2
+
+
+# Revision Fable 2026-11-14 (H1): la linea escrita SOLO en el worktree no
+# puede cubrir lo staged en `root` (produccion), en ningun encadenamiento.
+
+def _sensible_staged_en_root_y_linea_solo_en_wt(tmp_path: Path) -> tuple[Path, Path]:
+    root, wt = _worktree_con_sensible(tmp_path)
+    _stage_sensitive_file(root)
+    _current_task(root)
+    _current_task(wt, (f"FABLE-REVIEW: {HOY} | veredicto: APTO | rutas: configs/x.yaml",))
+    return root, wt
+
+
+@pytest.mark.parametrize("plantilla", [
+    'cd "{wt}" && git -C "{root}" commit -m m',
+    'cd "{wt}"; cd "{root}"; git commit -m m',
+    'git -C "{wt}" commit --dry-run -m a; git commit -m b',
+])
+def test_ki080_worktree_line_never_covers_a_root_commit(tmp_path, plantilla):
+    root, wt = _sensible_staged_en_root_y_linea_solo_en_wt(tmp_path)
+    command = plantilla.format(wt=wt.as_posix(), root=root.as_posix())
+    result = _run(root, {"tool_name": "Bash", "tool_input": {"command": command}})
+    assert result.returncode == 2, (command, result.stderr)
+    assert "configs/x.yaml" in result.stderr
+
+
+def test_ki080_per_commit_coverage_does_not_overblock(tmp_path):
+    root, wt = _sensible_staged_en_root_y_linea_solo_en_wt(tmp_path)
+    _current_task(root, (f"FABLE-REVIEW: {HOY} | veredicto: APTO | rutas: configs/x.yaml",))
+    command = f'git -C "{wt.as_posix()}" commit --dry-run -m a; git commit -m b'
+    result = _run(root, {"tool_name": "Bash", "tool_input": {"command": command}})
+    assert result.returncode == 0, result.stderr

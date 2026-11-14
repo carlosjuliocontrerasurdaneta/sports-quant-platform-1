@@ -1127,3 +1127,12 @@ Auditoría integral (segunda pasada, no ciega) sobre el árbol sucio. 4 hallazgo
 - Denegado por el clasificador, queda para el operador: `git stash drop`, `rm` de dos ficheros excluidos y `Stop-Process` de un pytest huérfano.
 - Lección: la memoria del line shopping estaba desfasada (`execution.books: [pinnacle]` está activo desde el 2026-10-20). Se verifica en `configs/` antes de recomendar.
 - Fusión en `main` (`9449c38`; suite 3.633 passed). Run manual de `DIARIO_COMPLETO.bat` a las 17:40, OK: 50 filas `low_reliability` con stake 0 y 275 `uncalibrated` de 278 candidates.
+
+
+## 2026-11-14 — «Continúa con todas las tareas pendientes» (sobre main)
+
+- KI-080 resuelto: `fable_gate.py` lee también el registro del worktree hermano, con cobertura POR COMMIT (Fable APTO CON CAMBIOS: H1 y H2 aplicados).
+- `SQP_Dashboard_Cdev` 0x41306: el límite de 5 min de la tarea mataba el script durante un health_check lento o el cuadro modal; health acotado a 180 s y tablero abierto antes del modal.
+- `test_shadow_mode_records_picks_with_zero_stake` deja de ser vacuo (demo NHL).
+- Backtest antes/después de `9e08613`: tabla de `n_skipped_unreliable` y ROI en `Obsidian/Bitácora/2026-11-14.md` (mlb 257 saltados; NBA/NFL/NHL sin cambios). Los ROI históricos citados deben usar la columna «después».
+- Limpieza: worktree y rama del 13-11 borrados; dos ficheros excluidos borrados; el pytest huérfano ya no existía. Sigue para el operador: `git stash drop` (el clasificador deniega todo comando con `stash`).

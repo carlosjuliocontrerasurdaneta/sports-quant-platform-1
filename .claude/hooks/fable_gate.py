@@ -768,6 +768,54 @@ def _normaliza_ruta(ruta: str) -> str:
     return limpia
 
 
+def _git_rev_parse(directorio: Path, *args: str) -> str | None:
+    try:
+        proc = subprocess.run(
+            ["git", "-c", "core.quotePath=false", "-C", str(directorio), "rev-parse", *args],
+            capture_output=True, text=True, timeout=_GIT_TIMEOUT_SEGUNDOS,
+            check=False, env=_entorno_git(),
+        )
+    except Exception:
+        return None
+    if proc.returncode != 0:
+        return None
+    salida = proc.stdout.strip()
+    return salida or None
+
+
+def _raiz_worktree_hermano(directorio: Path, root: Path) -> Path | None:
+    """KI-080: raiz del `git worktree` desde el que se commitea, si es OTRO
+    worktree del MISMO repositorio que `root` (mismo `--git-common-dir`).
+    `None` si es el propio `root`, si es otro repositorio o si git no
+    responde: en esos casos solo cuenta el registro de `root`, como antes."""
+    if not directorio.is_dir():
+        return None
+    top = _git_rev_parse(directorio, "--show-toplevel")
+    if top is None:
+        return None
+    top_path = Path(top)
+    try:
+        if top_path.resolve() == root.resolve():
+            return None
+    except OSError:
+        return None
+    comun_dir = _git_rev_parse(directorio, "--path-format=absolute", "--git-common-dir")
+    comun_root = _git_rev_parse(root, "--path-format=absolute", "--git-common-dir")
+    if comun_dir is None or comun_root is None:
+        return None
+    # Revision Fable 2026-11-14 (H2): un git < 2.31 no entiende
+    # `--path-format=absolute` y podria devolver algo relativo e igual en dos
+    # repos ajenos. Solo se comparan rutas absolutas.
+    if not (Path(comun_dir).is_absolute() and Path(comun_root).is_absolute()):
+        return None
+    try:
+        if Path(comun_dir).resolve() != Path(comun_root).resolve():
+            return None
+    except OSError:
+        return None
+    return top_path
+
+
 def _repo_root() -> Path:
     env_root = os.environ.get("CLAUDE_PROJECT_DIR")
     if env_root:
@@ -868,6 +916,7 @@ def _procesa_texto(
     profundidad: int = 0, segmentos_reconocidos: list[str] | None = None,
     segmentos_sin_blanquear: list[str] | None = None,
     dir_actual: list[Path] | None = None,
+    dirs_de_commit: list[Path] | None = None,
 ) -> None:
     if profundidad > _PROFUNDIDAD_MAXIMA_RECURSION:
         return
@@ -940,11 +989,15 @@ def _procesa_texto(
                              "--", *pathspecs],
                         )
                 resultados.append(rutas)
+                # KI-080: directorio del commit, para leer tambien el registro
+                # de revision del worktree hermano desde el que se commitea.
+                if dirs_de_commit is not None:
+                    dirs_de_commit.append(dir_git)
             continue
         cadena_anidada = _extrae_cadena_wrapper(partes)
         if cadena_anidada and "git" in cadena_anidada:
             _procesa_texto(cadena_anidada, root, acumulado_add, resultados, profundidad + 1, None, None,
-                           dir_actual)
+                           dir_actual, dirs_de_commit)
         # Verificacion de Fable 2026-09-26, hallazgo 1 (segunda ronda): este
         # segmento de nivel superior NO se reconocio como una invocacion real
         # de `git` (ni directamente ni via wrapper). Si tampoco es de solo
@@ -968,6 +1021,7 @@ def _procesa_texto(
 
 def _conjuntos_de_rutas_por_commit(
     command: str, root: Path, cwd: Path | None = None,
+    dirs_de_commit: list[Path] | None = None,
 ) -> tuple[list[set[str]], set[str], list[str], list[str]]:
     """Un elemento por cada `git commit` hallado en `command` (incluidos los
     envueltos en `bash -c`/`sh -c`/`pwsh -Command`), en el orden en que
@@ -993,7 +1047,8 @@ def _conjuntos_de_rutas_por_commit(
     segmentos_reconocidos: list[str] = []
     segmentos_sin_blanquear: list[str] = []
     _procesa_texto(command, root, acumulado_add, resultados, 0,
-                    segmentos_reconocidos, segmentos_sin_blanquear, [cwd or root])
+                    segmentos_reconocidos, segmentos_sin_blanquear, [cwd or root],
+                    dirs_de_commit)
     return resultados, acumulado_add, segmentos_reconocidos, segmentos_sin_blanquear
 
 
@@ -1297,9 +1352,10 @@ def _run(payload: dict, root: Path) -> int:
     if not command.strip():
         return 0
 
+    dirs_de_commit: list[Path] = []
     (conjuntos, acumulado_add, segmentos_reconocidos,
      segmentos_sin_blanquear) = _conjuntos_de_rutas_por_commit(
-        command, root, _cwd_del_payload(payload, root))
+        command, root, _cwd_del_payload(payload, root), dirs_de_commit)
     if not conjuntos:
         texto_preparado = _prepara_texto(command)
         respaldo = _defensa_en_profundidad(
@@ -1319,17 +1375,27 @@ def _run(payload: dict, root: Path) -> int:
         _registra_fallo_abierto(root, motivo)
         return 0
 
-    todas_las_rutas: set[str] = set()
-    for conjunto in conjuntos:
-        todas_las_rutas |= conjunto
-
-    sensibles = sorted(r for r in todas_las_rutas if _es_sensible(r, patrones))
-    if not sensibles:
-        return 0
-
     hoy = date.today().isoformat()
-    lineas = _lineas_fable_review(root / CURRENT_TASK_REL)
-    sin_cubrir = [r for r in sensibles if not _revision_cubre(r, lineas, hoy)]
+    lineas_root = _lineas_fable_review(root / CURRENT_TASK_REL)
+    # KI-080: un commit lanzado desde otro worktree del mismo repositorio
+    # (`cd <worktree> && git commit ...`) lleva su registro en ESE worktree, y
+    # se suma al de `root` (que sigue valiendo). Revision Fable 2026-11-14
+    # (H1): la cobertura se evalua POR COMMIT -- una linea escrita solo en el
+    # worktree nunca cubre otro commit del mismo comando dirigido a `root`.
+    # Los conjuntos de la defensa en profundidad no traen directorio: solo
+    # cuenta `root`.
+    sin_cubrir_total: set[str] = set()
+    for i, conjunto in enumerate(conjuntos):
+        sensibles = [r for r in conjunto if _es_sensible(r, patrones)]
+        if not sensibles:
+            continue
+        lineas = lineas_root
+        if i < len(dirs_de_commit):
+            hermano = _raiz_worktree_hermano(dirs_de_commit[i], root)
+            if hermano is not None:
+                lineas = lineas_root + _lineas_fable_review(hermano / CURRENT_TASK_REL)
+        sin_cubrir_total.update(r for r in sensibles if not _revision_cubre(r, lineas, hoy))
+    sin_cubrir = sorted(sin_cubrir_total)
     if not sin_cubrir:
         return 0
 

@@ -688,4 +688,4 @@ Format:
 - Description: `fable_gate.py` resuelve la raíz con `CLAUDE_PROJECT_DIR` (`_repo_root`, ~:771), así que, al commitear desde un `git worktree`, busca la línea FABLE-REVIEW en el `current-task.md` del árbol de producción y no en el del worktree. Un commit legítimo y revisado se bloquea, y la única salida es escribir el registro en producción, que deja ese árbol sucio en un fichero de `.claude/`.
 - Affected files: .claude/hooks/fable_gate.py
 - Fix: resolver la raíz desde el `cwd` del comando (`git -C <cwd> rev-parse --show-toplevel`) cuando el comando hace `cd` a otro worktree del mismo repositorio. Requiere test y revisión.
-- Status: ABIERTO (2026-11-13). Mitigado escribiendo las líneas en el registro de producción.
+- Status: RESUELTO 2026-11-14. Se lee también el `current-task.md` del worktree hermano (mismo `--git-common-dir`, rutas absolutas), con cobertura POR COMMIT (revisión Fable APTO CON CAMBIOS: H1 cobertura global, H2 git < 2.31, aplicados). 8 tests `test_ki080_*`. Ver Obsidian/Bitácora/2026-11-14.md.

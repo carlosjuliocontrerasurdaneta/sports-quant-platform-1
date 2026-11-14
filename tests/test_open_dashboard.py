@@ -80,3 +80,23 @@ def test_segunda_ejecucion_del_dia_se_omite_por_marcador(tmp_path):
     _run(root)
     r = _run(root)
     assert "ya mostrado hoy" in r.stdout
+
+
+def test_un_health_check_colgado_se_corta_y_el_tablero_se_abre(tmp_path):
+    # 2026-11-14 (0x41306): la tarea tiene un limite de 5 min; un health_check
+    # lento la hacia morir antes de abrir el tablero y escribir el marcador.
+    root = _sandbox(tmp_path, report_age_days=0.0, health_rc=0)
+    (root / "scripts" / "health_check.py").write_text(
+        "import time; time.sleep(60)\n", encoding="utf-8")
+    env = {**os.environ, "SQP_DASHBOARD_NO_UI": "1", "SQP_PYTHON": sys.executable,
+           "SQP_DASHBOARD_HEALTH_TIMEOUT_S": "3"}
+    inicio = time.time()
+    r = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+         str(root / "scripts" / "open_dashboard.ps1")],
+        capture_output=True, text=True, env=env, cwd=root, timeout=120)
+    assert time.time() - inicio < 45, "no corto el health_check"
+    assert r.returncode == 0, r.stderr
+    assert "Dashboard abierto" in r.stdout
+    assert "supero 3 s" in (root / "logs" / "open_dashboard.log").read_text(encoding="utf-8")
+    assert list((root / "logs").glob("dashboard_shown_*.flag"))
