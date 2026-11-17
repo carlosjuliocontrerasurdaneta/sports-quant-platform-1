@@ -1,0 +1,1270 @@
+{
+  "modo": "medir",
+  "procedencia": {
+    "head": "287984cf5b407ad773f7d077e7dac840b932b2da",
+    "blobs": {
+      "src/sqp/evaluation/edge_information.py": {
+        "hash_head": "6ddb2910d01be89c43cc4323e6025f3987982678",
+        "hash_disco": "6ddb2910d01be89c43cc4323e6025f3987982678"
+      },
+      "src/sqp/evaluation/model_vs_market.py": {
+        "hash_head": "2db10cefb234e9ecb24f14fbbca02eb0fbb0b616",
+        "hash_disco": "2db10cefb234e9ecb24f14fbbca02eb0fbb0b616"
+      },
+      "src/sqp/evaluation/bootstrap.py": {
+        "hash_head": "ce7541c4a10fdba465881c3f148efdf72b820f86",
+        "hash_disco": "ce7541c4a10fdba465881c3f148efdf72b820f86"
+      },
+      "src/sqp/pipeline/probabilities.py": {
+        "hash_head": "012693cf8f8086df8248c45ede34785b475f8096",
+        "hash_disco": "012693cf8f8086df8248c45ede34785b475f8096"
+      },
+      "scripts/research/measure_el_modelo_manda.py": {
+        "hash_head": "0fcd88eea7a551098e9121c82cf65c1a70a63ed5",
+        "hash_disco": "0fcd88eea7a551098e9121c82cf65c1a70a63ed5"
+      }
+    },
+    "git_status_porcelain": "",
+    "python": "3.14.4",
+    "pandas": "3.0.2",
+    "numpy": "2.4.4",
+    "h_mm": "d6e2b33f200f9a0aa4f89d35acdfe38af3af8609",
+    "commit_addendum_e": "806606abbb3f209754a2aa3d2283e9227c207163",
+    "commit_registro": "e3e5572b5a6c13ed5ec04873153667111ad9487a",
+    "commit_addendum_t1": "287984cf5b407ad773f7d077e7dac840b932b2da",
+    "market_shrink_en_graduado": {
+      "columna_presente": true,
+      "no_nulas": 34726,
+      "distintas_de_0_5": 16
+    },
+    "t1": "2026-11-03T20:34:56.565566+00:00",
+    "seed": 42,
+    "n_boot": 10000,
+    "difiere_de_lo_congelado": false,
+    "csv_graded": [
+      {
+        "fichero": "graded_brasileirao.csv",
+        "sha256": "87bcb956b21a1d92dbf98b223dc97dbc5c4d0143f50ebd3cc75f5e5a67f7633c",
+        "filas": 6154
+      },
+      {
+        "fichero": "graded_bundesliga.csv",
+        "sha256": "bdf0e6fd60982455a5d62dd00b9ecbc2640973cff07bec06ccead6be71b2d762",
+        "filas": 1603
+      },
+      {
+        "fichero": "graded_chile.csv",
+        "sha256": "6113e73829befefa53e5812be16259e0146023ae879a19c88ef29a3b8c576695",
+        "filas": 3568
+      },
+      {
+        "fichero": "graded_epl.csv",
+        "sha256": "361cd90f6139d4f35274ff8166a6652ecbed69c303f707d9624151bcadc62f69",
+        "filas": 2874
+      },
+      {
+        "fichero": "graded_laliga.csv",
+        "sha256": "0819ac3d6774b3d7c3ab5ef1dc0e44a7bdcb714c5562a2a79517fdf71adfbefd",
+        "filas": 2727
+      },
+      {
+        "fichero": "graded_ligamx.csv",
+        "sha256": "b0b4a51e81803ac0e05dd7326790195e9c6e21c49c9ad4cad44a0230c3aed082",
+        "filas": 4290
+      },
+      {
+        "fichero": "graded_ligue1.csv",
+        "sha256": "4d2b780a2bacdf03441e089556ce6027bcf3f27ee462218390eee2720ed52af6",
+        "filas": 2247
+      },
+      {
+        "fichero": "graded_mlb.csv",
+        "sha256": "dd6b47effe3fd3da3f38bd4f5308390bb9bcbab1f82245f29537bd42e56418bd",
+        "filas": 4898
+      },
+      {
+        "fichero": "graded_mls.csv",
+        "sha256": "263e4f71b41ff640956a207cae7291fbba901750c0fd91d6decae9559bc96a2c",
+        "filas": 9616
+      },
+      {
+        "fichero": "graded_nba.csv",
+        "sha256": "bdc245aa1b4b0cb70f8dc42adc5644eac997b0031648e14476255b8002fcb3bc",
+        "filas": 1796
+      },
+      {
+        "fichero": "graded_ncaab.csv",
+        "sha256": "77cb24555c3aaa8bee6d039a7b6af17e27d426d3e442a22680518d78b5c27878",
+        "filas": 2689
+      },
+      {
+        "fichero": "graded_ncaaf.csv",
+        "sha256": "ff89d2812435f2bbe4199202c742ebf2bebb990390679628d9315d4cad1f1ade",
+        "filas": 21567
+      },
+      {
+        "fichero": "graded_nfl.csv",
+        "sha256": "c3f64aabcfa0dc2dfa421c127eeba6a7d99b36c48acd67c0cb5052c3d64dc545",
+        "filas": 5150
+      },
+      {
+        "fichero": "graded_nhl.csv",
+        "sha256": "32db38e436fbcb924fb863cb321a6c466304490c8660fdd6bba245bab95ee100",
+        "filas": 3694
+      },
+      {
+        "fichero": "graded_seriea.csv",
+        "sha256": "6bb63568593af94c4035c81b50f9f66f97cd80c50e7def489e89d878b30be28f",
+        "filas": 3910
+      },
+      {
+        "fichero": "graded_tennis_atp_canadian_open.csv",
+        "sha256": "712b3af63077dfab35d6561aa6c26c7ab8e1a929b9b4a2151cb4b191163388cd",
+        "filas": 320
+      },
+      {
+        "fichero": "graded_tennis_atp_china_open.csv",
+        "sha256": "6f1f3c04056542ffb2c5a402e1c1219710800c54abd285ff7ff7a4896fb7eca9",
+        "filas": 56
+      },
+      {
+        "fichero": "graded_tennis_atp_cincinnati_open.csv",
+        "sha256": "9a5a83701fdb74e6dd7e0c24fbb2cd6c8125c3b2c86eff6c105c6445eef7d7ea",
+        "filas": 238
+      },
+      {
+        "fichero": "graded_tennis_atp_finals.csv",
+        "sha256": "638303289a9fe6b1b5e17049e700d86acd5b874aa99a65d8bf6b644cae10444d",
+        "filas": 24
+      },
+      {
+        "fichero": "graded_tennis_atp_japan_open.csv",
+        "sha256": "793bb1edb2d404b20d5b3e4ea2ec463528bbdb1933259a055a0950ecbc5b8fd0",
+        "filas": 88
+      },
+      {
+        "fichero": "graded_tennis_atp_paris_masters.csv",
+        "sha256": "ff68e2d6957bdd675b558bb71e04500bc672d51f0e7e3d4fe86b14d672c06484",
+        "filas": 60
+      },
+      {
+        "fichero": "graded_tennis_atp_shanghai_masters.csv",
+        "sha256": "8131f68364c8e0536a41e0f0b6452371e26d67f91b97b8a46960bd656f0d55c3",
+        "filas": 274
+      },
+      {
+        "fichero": "graded_tennis_atp_swiss_indoors.csv",
+        "sha256": "1dda0480cc4d50bf04a0a06a9ccf443122390e00bd290c0a3d3290e48432ff0a",
+        "filas": 38
+      },
+      {
+        "fichero": "graded_tennis_atp_us_open.csv",
+        "sha256": "aa64176e3f20ceaac12ebc9175300955c0cea52f7ed93c7d168a9186d73a2f6b",
+        "filas": 676
+      },
+      {
+        "fichero": "graded_tennis_atp_vienna_open.csv",
+        "sha256": "0b02d2745eef851dd0c59a63513e12de7f6810540efce2c2b6ef1e4f5a752119",
+        "filas": 42
+      },
+      {
+        "fichero": "graded_tennis_atp_washington_open.csv",
+        "sha256": "fc76b88a29b3e4317ac9af85b855c92d788ece01941a992ab29848acd530aa14",
+        "filas": 72
+      },
+      {
+        "fichero": "graded_tennis_atp_wimbledon.csv",
+        "sha256": "50abea3b210a6e54f4103eea0b1e7cfe49bc5aa17344d2ccae12382817bedf85",
+        "filas": 18
+      },
+      {
+        "fichero": "graded_tennis_wta_canadian_open.csv",
+        "sha256": "9d2310613df69884d0155fcb8c1fb87eb2edab1226c6ab26f3fa40503e914d65",
+        "filas": 298
+      },
+      {
+        "fichero": "graded_tennis_wta_china_open.csv",
+        "sha256": "c919fa5879cc9704f2f2aed6ce7a867c88fbc88a94220176ebff06b1f72c7854",
+        "filas": 108
+      },
+      {
+        "fichero": "graded_tennis_wta_cincinnati_open.csv",
+        "sha256": "edd8fd1e5cd78c46c98532b775f4b612f82ae125cdb6cd108ecad080a84899fc",
+        "filas": 282
+      },
+      {
+        "fichero": "graded_tennis_wta_finals.csv",
+        "sha256": "813d9e82a2f1d0b0cd16ea235e96317aae547e03702c94d23e01e28311fd36e6",
+        "filas": 30
+      },
+      {
+        "fichero": "graded_tennis_wta_guadalajara_open.csv",
+        "sha256": "ca495a43867b136da2c55c7bf262e7097e363ee816d5432aa9d3d271c1e599b5",
+        "filas": 56
+      },
+      {
+        "fichero": "graded_tennis_wta_monterrey_open.csv",
+        "sha256": "5980bc6fd1cdccf3a6ce077e22f07657f198941a67b1b027b62e436d085becbe",
+        "filas": 48
+      },
+      {
+        "fichero": "graded_tennis_wta_ningbo_open.csv",
+        "sha256": "81614013a329d7a4ff9b5c5f2ae5f529ca77c33188d130c3ba693ee50f6c96d3",
+        "filas": 68
+      },
+      {
+        "fichero": "graded_tennis_wta_pan_pacific_open.csv",
+        "sha256": "54f19a8410c7fc4f860ca67e43e3f4fa3f3c731069a5c8ff6d6112eb9e70b186",
+        "filas": 62
+      },
+      {
+        "fichero": "graded_tennis_wta_singapore_open.csv",
+        "sha256": "a9228afb45662e484a69340d0304a199dba021817cb921f308d1006a680e2743",
+        "filas": 44
+      },
+      {
+        "fichero": "graded_tennis_wta_us_open.csv",
+        "sha256": "c16dcbcf8a7a378713e03d4e725fbf64112c6e658c4de2d4f1aa8c100168552b",
+        "filas": 578
+      },
+      {
+        "fichero": "graded_tennis_wta_washington_open.csv",
+        "sha256": "813243b62c9d2c93db211806af74e0ca6d85be7b2482df8ddcec51f4235de31c",
+        "filas": 64
+      },
+      {
+        "fichero": "graded_tennis_wta_wimbledon.csv",
+        "sha256": "a97a5a11aa1727ad8495675db7d1fe6f9e4572bf12fb8275d959dde2c0d477ae",
+        "filas": 18
+      },
+      {
+        "fichero": "graded_tennis_wta_wuhan_open.csv",
+        "sha256": "78ef09d98fc27555b33617361e55d6b23f03a00629d3e51e945ab905f55aca25",
+        "filas": 92
+      },
+      {
+        "fichero": "graded_ucl.csv",
+        "sha256": "a584d241069deba8484c3964e037446d9c1eb5a19ae6482738e5563ec37142ba",
+        "filas": 1159
+      },
+      {
+        "fichero": "graded_uwcl.csv",
+        "sha256": "6d434156debed9f06a8d59dbbc1bd030cca265b3b3c3697dcabfec964265dc40",
+        "filas": 476
+      },
+      {
+        "fichero": "graded_wnba.csv",
+        "sha256": "7666dbe65dd17c34b5ad97b305909d30ac8752f1bf98a2fabd6f87d1a74ba73b",
+        "filas": 2566
+      },
+      {
+        "fichero": "graded_wncaab.csv",
+        "sha256": "5f244d6b93cf7b852b6f30bf54f464eb391a773393a02e629f47136c608d4abd",
+        "filas": 256
+      }
+    ],
+    "ligas_graded": {
+      "listadas": [
+        "brasileirao",
+        "bundesliga",
+        "chile",
+        "epl",
+        "laliga",
+        "ligamx",
+        "ligue1",
+        "mlb",
+        "mls",
+        "nba",
+        "ncaab",
+        "ncaaf",
+        "nfl",
+        "nhl",
+        "seriea",
+        "tennis_atp_canadian_open",
+        "tennis_atp_china_open",
+        "tennis_atp_cincinnati_open",
+        "tennis_atp_finals",
+        "tennis_atp_japan_open",
+        "tennis_atp_paris_masters",
+        "tennis_atp_shanghai_masters",
+        "tennis_atp_swiss_indoors",
+        "tennis_atp_us_open",
+        "tennis_atp_vienna_open",
+        "tennis_atp_washington_open",
+        "tennis_atp_wimbledon",
+        "tennis_wta_canadian_open",
+        "tennis_wta_china_open",
+        "tennis_wta_cincinnati_open",
+        "tennis_wta_finals",
+        "tennis_wta_guadalajara_open",
+        "tennis_wta_monterrey_open",
+        "tennis_wta_ningbo_open",
+        "tennis_wta_pan_pacific_open",
+        "tennis_wta_singapore_open",
+        "tennis_wta_us_open",
+        "tennis_wta_washington_open",
+        "tennis_wta_wimbledon",
+        "tennis_wta_wuhan_open",
+        "ucl",
+        "uwcl",
+        "wnba",
+        "wncaab"
+      ],
+      "cargadas": [
+        "brasileirao",
+        "bundesliga",
+        "chile",
+        "epl",
+        "laliga",
+        "ligamx",
+        "ligue1",
+        "mlb",
+        "mls",
+        "nba",
+        "ncaab",
+        "ncaaf",
+        "nfl",
+        "nhl",
+        "seriea",
+        "tennis_atp_canadian_open",
+        "tennis_atp_china_open",
+        "tennis_atp_cincinnati_open",
+        "tennis_atp_finals",
+        "tennis_atp_japan_open",
+        "tennis_atp_paris_masters",
+        "tennis_atp_shanghai_masters",
+        "tennis_atp_swiss_indoors",
+        "tennis_atp_us_open",
+        "tennis_atp_vienna_open",
+        "tennis_atp_washington_open",
+        "tennis_atp_wimbledon",
+        "tennis_wta_canadian_open",
+        "tennis_wta_china_open",
+        "tennis_wta_cincinnati_open",
+        "tennis_wta_finals",
+        "tennis_wta_guadalajara_open",
+        "tennis_wta_monterrey_open",
+        "tennis_wta_ningbo_open",
+        "tennis_wta_pan_pacific_open",
+        "tennis_wta_singapore_open",
+        "tennis_wta_us_open",
+        "tennis_wta_washington_open",
+        "tennis_wta_wimbledon",
+        "tennis_wta_wuhan_open",
+        "ucl",
+        "uwcl",
+        "wnba",
+        "wncaab"
+      ],
+      "vacias": [],
+      "faltantes": []
+    },
+    "filas_data_label_no_real": 0,
+    "registro": {
+      "t1_addendum": "2026-11-03T20:34:56.565566+00:00",
+      "commit_registro": "e3e5572b5a6c13ed5ec04873153667111ad9487a",
+      "primera_linea_registro": {
+        "instante_ejecucion_utc": "2026-11-17T20:34:56.565566+00:00",
+        "head": "603cfa978b26b9e3abb4a59d8a2d32e849a84a7f",
+        "h_mm": "d6e2b33f200f9a0aa4f89d35acdfe38af3af8609",
+        "t1_candidato": "2026-11-03T20:34:56.565566+00:00",
+        "n_eventos": 3887,
+        "n_picks": 24849,
+        "n_eventos_sin_corte": 4623,
+        "eventos_por_segmento": {
+          "brasileirao|h2h": 135,
+          "brasileirao|spreads": 125,
+          "brasileirao|totals": 135,
+          "bundesliga|h2h": 37,
+          "bundesliga|spreads": 35,
+          "bundesliga|totals": 37,
+          "chile|h2h": 72,
+          "chile|spreads": 62,
+          "chile|totals": 72,
+          "epl|h2h": 71,
+          "epl|spreads": 63,
+          "epl|totals": 71,
+          "laliga|h2h": 65,
+          "laliga|spreads": 49,
+          "laliga|totals": 65,
+          "ligamx|h2h": 96,
+          "ligamx|spreads": 83,
+          "ligamx|totals": 96,
+          "ligue1|h2h": 50,
+          "ligue1|spreads": 45,
+          "ligue1|totals": 50,
+          "mlb|h2h": 750,
+          "mlb|spreads": 750,
+          "mlb|totals": 732,
+          "mls|h2h": 225,
+          "mls|spreads": 209,
+          "mls|totals": 225,
+          "nba|h2h": 92,
+          "nba|spreads": 92,
+          "nba|totals": 92,
+          "ncaab|h2h": 38,
+          "ncaab|spreads": 70,
+          "ncaab|totals": 72,
+          "ncaaf|h2h": 530,
+          "ncaaf|spreads": 528,
+          "ncaaf|totals": 530,
+          "nfl|h2h": 122,
+          "nfl|spreads": 123,
+          "nfl|totals": 123,
+          "nhl|h2h": 106,
+          "nhl|spreads": 224,
+          "nhl|totals": 224,
+          "seriea|h2h": 90,
+          "seriea|spreads": 83,
+          "seriea|totals": 90,
+          "tennis_atp_canadian_open|h2h": 85,
+          "tennis_atp_china_open|h2h": 17,
+          "tennis_atp_cincinnati_open|h2h": 96,
+          "tennis_atp_japan_open|h2h": 29,
+          "tennis_atp_paris_masters|h2h": 10,
+          "tennis_atp_shanghai_masters|h2h": 83,
+          "tennis_atp_swiss_indoors|h2h": 19,
+          "tennis_atp_us_open|h2h": 110,
+          "tennis_atp_vienna_open|h2h": 20,
+          "tennis_atp_washington_open|h2h": 23,
+          "tennis_atp_wimbledon|h2h": 6,
+          "tennis_wta_canadian_open|h2h": 83,
+          "tennis_wta_china_open|h2h": 45,
+          "tennis_wta_cincinnati_open|h2h": 104,
+          "tennis_wta_guadalajara_open|h2h": 25,
+          "tennis_wta_monterrey_open|h2h": 17,
+          "tennis_wta_ningbo_open|h2h": 26,
+          "tennis_wta_pan_pacific_open|h2h": 23,
+          "tennis_wta_singapore_open|h2h": 20,
+          "tennis_wta_us_open|h2h": 108,
+          "tennis_wta_washington_open|h2h": 23,
+          "tennis_wta_wimbledon|h2h": 6,
+          "tennis_wta_wuhan_open|h2h": 37,
+          "ucl|h2h": 30,
+          "ucl|spreads": 28,
+          "ucl|totals": 30,
+          "uwcl|h2h": 12,
+          "uwcl|spreads": 12,
+          "uwcl|totals": 12,
+          "wnba|h2h": 197,
+          "wnba|spreads": 197,
+          "wnba|totals": 197,
+          "wncaab|h2h": 1,
+          "wncaab|spreads": 1,
+          "wncaab|totals": 1
+        },
+        "segmentos_con_800_o_mas": [],
+        "exclusiones": {
+          "filas_entrada": 84894,
+          "resultado_excluido_por_valor": {
+            "push": 1240,
+            "void": 670,
+            "half_loss": 174,
+            "half_win": 174
+          },
+          "sin_probabilidades": 19,
+          "filas_tras_filtros": 82617,
+          "picks_tras_colapso": 30839,
+          "picks_p_cal_fuera_de_rango": 0,
+          "picks_mercado_invalido_aud003": 236,
+          "picks_linea_cuarto_aud008": 154,
+          "picks_sin_corte": 30449,
+          "primera_servida_generated_at_ilegible": 0,
+          "primera_servida_posterior_a_t1": 5600,
+          "primera_servida_start_time_ilegible": 0,
+          "primera_servida_no_pregame": 0,
+          "filas_data_label_no_real": 0
+        },
+        "picks_sin_graduar": 70,
+        "chequeo_s": {
+          "n_filas": 20355,
+          "fraccion_edge_inconsistente": 0.0,
+          "descriptivo_solo_con_adjusted_probability": {
+            "n_filas": 15043,
+            "mediana_s_hat": 0.5,
+            "fraccion_fuera_de_0_05": 0.0
+          },
+          "verificable": true,
+          "ok": true,
+          "mediana_s_hat": 0.5,
+          "fraccion_fuera_de_0_05": 0.004716285924834193
+        },
+        "csv_leidos": {
+          "graded": [
+            {
+              "fichero": "graded_brasileirao.csv",
+              "sha256": "87bcb956b21a1d92dbf98b223dc97dbc5c4d0143f50ebd3cc75f5e5a67f7633c",
+              "filas": 6154
+            },
+            {
+              "fichero": "graded_bundesliga.csv",
+              "sha256": "bdf0e6fd60982455a5d62dd00b9ecbc2640973cff07bec06ccead6be71b2d762",
+              "filas": 1603
+            },
+            {
+              "fichero": "graded_chile.csv",
+              "sha256": "6113e73829befefa53e5812be16259e0146023ae879a19c88ef29a3b8c576695",
+              "filas": 3568
+            },
+            {
+              "fichero": "graded_epl.csv",
+              "sha256": "361cd90f6139d4f35274ff8166a6652ecbed69c303f707d9624151bcadc62f69",
+              "filas": 2874
+            },
+            {
+              "fichero": "graded_laliga.csv",
+              "sha256": "0819ac3d6774b3d7c3ab5ef1dc0e44a7bdcb714c5562a2a79517fdf71adfbefd",
+              "filas": 2727
+            },
+            {
+              "fichero": "graded_ligamx.csv",
+              "sha256": "b0b4a51e81803ac0e05dd7326790195e9c6e21c49c9ad4cad44a0230c3aed082",
+              "filas": 4290
+            },
+            {
+              "fichero": "graded_ligue1.csv",
+              "sha256": "4d2b780a2bacdf03441e089556ce6027bcf3f27ee462218390eee2720ed52af6",
+              "filas": 2247
+            },
+            {
+              "fichero": "graded_mlb.csv",
+              "sha256": "dd6b47effe3fd3da3f38bd4f5308390bb9bcbab1f82245f29537bd42e56418bd",
+              "filas": 4898
+            },
+            {
+              "fichero": "graded_mls.csv",
+              "sha256": "263e4f71b41ff640956a207cae7291fbba901750c0fd91d6decae9559bc96a2c",
+              "filas": 9616
+            },
+            {
+              "fichero": "graded_nba.csv",
+              "sha256": "bdc245aa1b4b0cb70f8dc42adc5644eac997b0031648e14476255b8002fcb3bc",
+              "filas": 1796
+            },
+            {
+              "fichero": "graded_ncaab.csv",
+              "sha256": "77cb24555c3aaa8bee6d039a7b6af17e27d426d3e442a22680518d78b5c27878",
+              "filas": 2689
+            },
+            {
+              "fichero": "graded_ncaaf.csv",
+              "sha256": "ff89d2812435f2bbe4199202c742ebf2bebb990390679628d9315d4cad1f1ade",
+              "filas": 21567
+            },
+            {
+              "fichero": "graded_nfl.csv",
+              "sha256": "c3f64aabcfa0dc2dfa421c127eeba6a7d99b36c48acd67c0cb5052c3d64dc545",
+              "filas": 5150
+            },
+            {
+              "fichero": "graded_nhl.csv",
+              "sha256": "32db38e436fbcb924fb863cb321a6c466304490c8660fdd6bba245bab95ee100",
+              "filas": 3694
+            },
+            {
+              "fichero": "graded_seriea.csv",
+              "sha256": "6bb63568593af94c4035c81b50f9f66f97cd80c50e7def489e89d878b30be28f",
+              "filas": 3910
+            },
+            {
+              "fichero": "graded_tennis_atp_canadian_open.csv",
+              "sha256": "712b3af63077dfab35d6561aa6c26c7ab8e1a929b9b4a2151cb4b191163388cd",
+              "filas": 320
+            },
+            {
+              "fichero": "graded_tennis_atp_china_open.csv",
+              "sha256": "6f1f3c04056542ffb2c5a402e1c1219710800c54abd285ff7ff7a4896fb7eca9",
+              "filas": 56
+            },
+            {
+              "fichero": "graded_tennis_atp_cincinnati_open.csv",
+              "sha256": "9a5a83701fdb74e6dd7e0c24fbb2cd6c8125c3b2c86eff6c105c6445eef7d7ea",
+              "filas": 238
+            },
+            {
+              "fichero": "graded_tennis_atp_finals.csv",
+              "sha256": "638303289a9fe6b1b5e17049e700d86acd5b874aa99a65d8bf6b644cae10444d",
+              "filas": 24
+            },
+            {
+              "fichero": "graded_tennis_atp_japan_open.csv",
+              "sha256": "793bb1edb2d404b20d5b3e4ea2ec463528bbdb1933259a055a0950ecbc5b8fd0",
+              "filas": 88
+            },
+            {
+              "fichero": "graded_tennis_atp_paris_masters.csv",
+              "sha256": "ff68e2d6957bdd675b558bb71e04500bc672d51f0e7e3d4fe86b14d672c06484",
+              "filas": 60
+            },
+            {
+              "fichero": "graded_tennis_atp_shanghai_masters.csv",
+              "sha256": "8131f68364c8e0536a41e0f0b6452371e26d67f91b97b8a46960bd656f0d55c3",
+              "filas": 274
+            },
+            {
+              "fichero": "graded_tennis_atp_swiss_indoors.csv",
+              "sha256": "1dda0480cc4d50bf04a0a06a9ccf443122390e00bd290c0a3d3290e48432ff0a",
+              "filas": 38
+            },
+            {
+              "fichero": "graded_tennis_atp_us_open.csv",
+              "sha256": "aa64176e3f20ceaac12ebc9175300955c0cea52f7ed93c7d168a9186d73a2f6b",
+              "filas": 676
+            },
+            {
+              "fichero": "graded_tennis_atp_vienna_open.csv",
+              "sha256": "0b02d2745eef851dd0c59a63513e12de7f6810540efce2c2b6ef1e4f5a752119",
+              "filas": 42
+            },
+            {
+              "fichero": "graded_tennis_atp_washington_open.csv",
+              "sha256": "fc76b88a29b3e4317ac9af85b855c92d788ece01941a992ab29848acd530aa14",
+              "filas": 72
+            },
+            {
+              "fichero": "graded_tennis_atp_wimbledon.csv",
+              "sha256": "50abea3b210a6e54f4103eea0b1e7cfe49bc5aa17344d2ccae12382817bedf85",
+              "filas": 18
+            },
+            {
+              "fichero": "graded_tennis_wta_canadian_open.csv",
+              "sha256": "9d2310613df69884d0155fcb8c1fb87eb2edab1226c6ab26f3fa40503e914d65",
+              "filas": 298
+            },
+            {
+              "fichero": "graded_tennis_wta_china_open.csv",
+              "sha256": "c919fa5879cc9704f2f2aed6ce7a867c88fbc88a94220176ebff06b1f72c7854",
+              "filas": 108
+            },
+            {
+              "fichero": "graded_tennis_wta_cincinnati_open.csv",
+              "sha256": "edd8fd1e5cd78c46c98532b775f4b612f82ae125cdb6cd108ecad080a84899fc",
+              "filas": 282
+            },
+            {
+              "fichero": "graded_tennis_wta_finals.csv",
+              "sha256": "813d9e82a2f1d0b0cd16ea235e96317aae547e03702c94d23e01e28311fd36e6",
+              "filas": 30
+            },
+            {
+              "fichero": "graded_tennis_wta_guadalajara_open.csv",
+              "sha256": "ca495a43867b136da2c55c7bf262e7097e363ee816d5432aa9d3d271c1e599b5",
+              "filas": 56
+            },
+            {
+              "fichero": "graded_tennis_wta_monterrey_open.csv",
+              "sha256": "5980bc6fd1cdccf3a6ce077e22f07657f198941a67b1b027b62e436d085becbe",
+              "filas": 48
+            },
+            {
+              "fichero": "graded_tennis_wta_ningbo_open.csv",
+              "sha256": "81614013a329d7a4ff9b5c5f2ae5f529ca77c33188d130c3ba693ee50f6c96d3",
+              "filas": 68
+            },
+            {
+              "fichero": "graded_tennis_wta_pan_pacific_open.csv",
+              "sha256": "54f19a8410c7fc4f860ca67e43e3f4fa3f3c731069a5c8ff6d6112eb9e70b186",
+              "filas": 62
+            },
+            {
+              "fichero": "graded_tennis_wta_singapore_open.csv",
+              "sha256": "a9228afb45662e484a69340d0304a199dba021817cb921f308d1006a680e2743",
+              "filas": 44
+            },
+            {
+              "fichero": "graded_tennis_wta_us_open.csv",
+              "sha256": "c16dcbcf8a7a378713e03d4e725fbf64112c6e658c4de2d4f1aa8c100168552b",
+              "filas": 578
+            },
+            {
+              "fichero": "graded_tennis_wta_washington_open.csv",
+              "sha256": "813243b62c9d2c93db211806af74e0ca6d85be7b2482df8ddcec51f4235de31c",
+              "filas": 64
+            },
+            {
+              "fichero": "graded_tennis_wta_wimbledon.csv",
+              "sha256": "a97a5a11aa1727ad8495675db7d1fe6f9e4572bf12fb8275d959dde2c0d477ae",
+              "filas": 18
+            },
+            {
+              "fichero": "graded_tennis_wta_wuhan_open.csv",
+              "sha256": "78ef09d98fc27555b33617361e55d6b23f03a00629d3e51e945ab905f55aca25",
+              "filas": 92
+            },
+            {
+              "fichero": "graded_ucl.csv",
+              "sha256": "a584d241069deba8484c3964e037446d9c1eb5a19ae6482738e5563ec37142ba",
+              "filas": 1159
+            },
+            {
+              "fichero": "graded_uwcl.csv",
+              "sha256": "6d434156debed9f06a8d59dbbc1bd030cca265b3b3c3697dcabfec964265dc40",
+              "filas": 476
+            },
+            {
+              "fichero": "graded_wnba.csv",
+              "sha256": "7666dbe65dd17c34b5ad97b305909d30ac8752f1bf98a2fabd6f87d1a74ba73b",
+              "filas": 2566
+            },
+            {
+              "fichero": "graded_wncaab.csv",
+              "sha256": "5f244d6b93cf7b852b6f30bf54f464eb391a773393a02e629f47136c608d4abd",
+              "filas": 256
+            }
+          ],
+          "served": [
+            {
+              "fichero": "served_brasileirao.csv",
+              "sha256": "0b6225058c8f1539fa1d9a1c3d46a1a04a355acd7b91d8d1dc2c259eaeaca952",
+              "filas": 6638
+            },
+            {
+              "fichero": "served_bundesliga.csv",
+              "sha256": "01cd552c205b5dbb0b2744ff0decd923afd21a10f822e3bda3d41efb5bbe3dcf",
+              "filas": 1757
+            },
+            {
+              "fichero": "served_chile.csv",
+              "sha256": "2910ce971e47ece1d7542d63bff3786c05af5d4de492da8733acaf70152d054d",
+              "filas": 3799
+            },
+            {
+              "fichero": "served_epl.csv",
+              "sha256": "0be484f5e90ff54aa091f23c11c5ec9ecd016e39885b5fb6ccbdc19f85ce15da",
+              "filas": 3105
+            },
+            {
+              "fichero": "served_laliga.csv",
+              "sha256": "0ff0c6f0747e9154b467e489c52df16f89a9186b57c0b6188b53aecf2069dcd5",
+              "filas": 2923
+            },
+            {
+              "fichero": "served_ligamx.csv",
+              "sha256": "f68714f41b7184b636fa7ed56441d7a48f225fa9155ac210b8ed60fb2d51e3dc",
+              "filas": 4486
+            },
+            {
+              "fichero": "served_ligue1.csv",
+              "sha256": "b15db27a7075d6b85bc7ef7629cedd0ca886d6be1dbeadbf1a489e3fc99c5c4d",
+              "filas": 2436
+            },
+            {
+              "fichero": "served_mlb.csv",
+              "sha256": "081c2c05d6b26bbf3713cffbc77803f20bef95de26bb87e437a48b6f910b743a",
+              "filas": 4952
+            },
+            {
+              "fichero": "served_mls.csv",
+              "sha256": "a2255965f8aa8c3958aaaefcb859fbc916b1fe082b9b3f8b986fdd9ace4fa60c",
+              "filas": 9770
+            },
+            {
+              "fichero": "served_nba.csv",
+              "sha256": "725396246ea549016e2aa773806ec002f7e3fab747791ff6cced7911b895db98",
+              "filas": 1826
+            },
+            {
+              "fichero": "served_ncaab.csv",
+              "sha256": "14e006e554e9fa98e664766d6043fde163dbbb46397b83fe430a520901e7222a",
+              "filas": 2709
+            },
+            {
+              "fichero": "served_ncaaf.csv",
+              "sha256": "3f86377e2a3934a86f9df421ee5f33dbdf1802e5b97334e1ff50365bb32a430e",
+              "filas": 22635
+            },
+            {
+              "fichero": "served_nfl.csv",
+              "sha256": "b3ddae5f2a3ea854df1663f5f394ccd98886184fede5607105319b356e9be92d",
+              "filas": 5312
+            },
+            {
+              "fichero": "served_nhl.csv",
+              "sha256": "928b3aa808cfe7bcb1bff1648a0fcc9d296ae9974fb22fef7cf169d15e29a91c",
+              "filas": 3760
+            },
+            {
+              "fichero": "served_seriea.csv",
+              "sha256": "19dd4f88f462fbf008e742d540689e6c74a177f503742689e1574f11f6159b54",
+              "filas": 4106
+            },
+            {
+              "fichero": "served_tennis_atp_canadian_open.csv",
+              "sha256": "d2eefa625de9be438e6460dcc156202c506135a31f6611579e2fc534a865490f",
+              "filas": 320
+            },
+            {
+              "fichero": "served_tennis_atp_china_open.csv",
+              "sha256": "8f902bc3f8f232196173a40a544001ce951f64c69e0fea816d9c1165440a004b",
+              "filas": 56
+            },
+            {
+              "fichero": "served_tennis_atp_cincinnati_open.csv",
+              "sha256": "eafd3587245915d80fc55675a986e094a193d8a1d4195350c34b7e98e3b39480",
+              "filas": 238
+            },
+            {
+              "fichero": "served_tennis_atp_finals.csv",
+              "sha256": "9fe297f4f74c26920ef5e6514d73ee9c0c49731d23ba52ce7e0722f2f1196a17",
+              "filas": 34
+            },
+            {
+              "fichero": "served_tennis_atp_japan_open.csv",
+              "sha256": "5c196e74f126d5b925e21be06bc23361cd051b1cb3030a00ec547be91e8c78ef",
+              "filas": 88
+            },
+            {
+              "fichero": "served_tennis_atp_paris_masters.csv",
+              "sha256": "9b4cbf4726c1920be53757e8e21f041db991669983b58addfc291ba195195d52",
+              "filas": 60
+            },
+            {
+              "fichero": "served_tennis_atp_shanghai_masters.csv",
+              "sha256": "6de1c24cf4acea8005508eaa6b63f7995b43e40155023b7ac59fcb95147659da",
+              "filas": 274
+            },
+            {
+              "fichero": "served_tennis_atp_swiss_indoors.csv",
+              "sha256": "3646ad2d6c0fe2b0f51ca3399767d831ec9e913e2476a92738c27cc864411722",
+              "filas": 38
+            },
+            {
+              "fichero": "served_tennis_atp_us_open.csv",
+              "sha256": "7fd6261454bed90b4750e15138afe330e1a7f282b899aa518d3216bb294aeff6",
+              "filas": 676
+            },
+            {
+              "fichero": "served_tennis_atp_vienna_open.csv",
+              "sha256": "f2625f0cd2c101b70159d5d2a1201f048f35c015ae671cece3cec72a2f3d2242",
+              "filas": 42
+            },
+            {
+              "fichero": "served_tennis_atp_washington_open.csv",
+              "sha256": "9b7ee01c5037a217f630f5cef6377bbae8f46104a59ecfb3d16c668fd9a3dcec",
+              "filas": 72
+            },
+            {
+              "fichero": "served_tennis_atp_wimbledon.csv",
+              "sha256": "d3f3c45c67f1eed42ede8e353ff3d3394499bbc97b9e4e33555388d2755295d4",
+              "filas": 18
+            },
+            {
+              "fichero": "served_tennis_wta_canadian_open.csv",
+              "sha256": "3d1ca7661a02ba4f85ab6c3eeace8b40b189d7d360fef98d98189879e4c98405",
+              "filas": 298
+            },
+            {
+              "fichero": "served_tennis_wta_china_open.csv",
+              "sha256": "8582a029114564a8835e7511f934dfb17d76543c39c681251aa8758f091ee9dc",
+              "filas": 108
+            },
+            {
+              "fichero": "served_tennis_wta_cincinnati_open.csv",
+              "sha256": "1ec95216dbce237b0c3ed05a43985b855e63f313231f8b89c11df26448dfa03d",
+              "filas": 282
+            },
+            {
+              "fichero": "served_tennis_wta_finals.csv",
+              "sha256": "6abc066b33f8ca8322aaf25ff63bd436ce4d961c2ff146477245e41427357d49",
+              "filas": 30
+            },
+            {
+              "fichero": "served_tennis_wta_guadalajara_open.csv",
+              "sha256": "734ed3bee9621744eed28ccaf584617ec2ac69b034742afad4a285048e82b1f6",
+              "filas": 56
+            },
+            {
+              "fichero": "served_tennis_wta_monterrey_open.csv",
+              "sha256": "ff2653052162ecbebe94bdec6d8245aa861005fe4eb1bcfa2510a95c55d25771",
+              "filas": 48
+            },
+            {
+              "fichero": "served_tennis_wta_ningbo_open.csv",
+              "sha256": "4fc2fd7a2cebfd346ab422d965ebd7966f6392e9ee661037e261dbd113a6da42",
+              "filas": 68
+            },
+            {
+              "fichero": "served_tennis_wta_pan_pacific_open.csv",
+              "sha256": "0d851b0482dd4e953153e0a4f4aa2fcfe1676448426280c6f62db32c313020f2",
+              "filas": 62
+            },
+            {
+              "fichero": "served_tennis_wta_singapore_open.csv",
+              "sha256": "7b7e37fcf944b3021b19a1a027fc1851a30b7bc067f46ecc3e7e31062bab983d",
+              "filas": 44
+            },
+            {
+              "fichero": "served_tennis_wta_us_open.csv",
+              "sha256": "b318bb698581d474bbb257e030f8f5fc675d580820d7e2bfaa7d4647b3501ad1",
+              "filas": 578
+            },
+            {
+              "fichero": "served_tennis_wta_washington_open.csv",
+              "sha256": "c9529a1744dad0c97522eb1b150daf89858c6c923f713fbedaac6566e877af8f",
+              "filas": 64
+            },
+            {
+              "fichero": "served_tennis_wta_wimbledon.csv",
+              "sha256": "c997ec8199f191decc1c3072d25f7b50fd64021c3af320c83f201b26370ebca0",
+              "filas": 18
+            },
+            {
+              "fichero": "served_tennis_wta_wuhan_open.csv",
+              "sha256": "2afbeb9f87fcc5c877b06a47493a14f418137bddcd97a70a55eefd96afdbf625",
+              "filas": 92
+            },
+            {
+              "fichero": "served_ucl.csv",
+              "sha256": "1d7f376e3f8e3fd57bd68b26c647ee5a5d93fc12f4601faa0a357e5a494f6117",
+              "filas": 1159
+            },
+            {
+              "fichero": "served_uwcl.csv",
+              "sha256": "9dd924b2db395adb396fef76d32bbcddc5a37cd1adb67cf8780e911bad873e69",
+              "filas": 567
+            },
+            {
+              "fichero": "served_wnba.csv",
+              "sha256": "15909f1c6174f582b7518ea4f9b61d34c99594391f8f268412d35e47dd49f8e1",
+              "filas": 2578
+            },
+            {
+              "fichero": "served_wncaab.csv",
+              "sha256": "61016ed9a55ce46037c0dbdfebb9dd4aa8ee1428fb357e6978421b7aee8beff1",
+              "filas": 287
+            }
+          ]
+        },
+        "ligas": {
+          "graded": {
+            "listadas": [
+              "brasileirao",
+              "bundesliga",
+              "chile",
+              "epl",
+              "laliga",
+              "ligamx",
+              "ligue1",
+              "mlb",
+              "mls",
+              "nba",
+              "ncaab",
+              "ncaaf",
+              "nfl",
+              "nhl",
+              "seriea",
+              "tennis_atp_canadian_open",
+              "tennis_atp_china_open",
+              "tennis_atp_cincinnati_open",
+              "tennis_atp_finals",
+              "tennis_atp_japan_open",
+              "tennis_atp_paris_masters",
+              "tennis_atp_shanghai_masters",
+              "tennis_atp_swiss_indoors",
+              "tennis_atp_us_open",
+              "tennis_atp_vienna_open",
+              "tennis_atp_washington_open",
+              "tennis_atp_wimbledon",
+              "tennis_wta_canadian_open",
+              "tennis_wta_china_open",
+              "tennis_wta_cincinnati_open",
+              "tennis_wta_finals",
+              "tennis_wta_guadalajara_open",
+              "tennis_wta_monterrey_open",
+              "tennis_wta_ningbo_open",
+              "tennis_wta_pan_pacific_open",
+              "tennis_wta_singapore_open",
+              "tennis_wta_us_open",
+              "tennis_wta_washington_open",
+              "tennis_wta_wimbledon",
+              "tennis_wta_wuhan_open",
+              "ucl",
+              "uwcl",
+              "wnba",
+              "wncaab"
+            ],
+            "cargadas": [
+              "brasileirao",
+              "bundesliga",
+              "chile",
+              "epl",
+              "laliga",
+              "ligamx",
+              "ligue1",
+              "mlb",
+              "mls",
+              "nba",
+              "ncaab",
+              "ncaaf",
+              "nfl",
+              "nhl",
+              "seriea",
+              "tennis_atp_canadian_open",
+              "tennis_atp_china_open",
+              "tennis_atp_cincinnati_open",
+              "tennis_atp_finals",
+              "tennis_atp_japan_open",
+              "tennis_atp_paris_masters",
+              "tennis_atp_shanghai_masters",
+              "tennis_atp_swiss_indoors",
+              "tennis_atp_us_open",
+              "tennis_atp_vienna_open",
+              "tennis_atp_washington_open",
+              "tennis_atp_wimbledon",
+              "tennis_wta_canadian_open",
+              "tennis_wta_china_open",
+              "tennis_wta_cincinnati_open",
+              "tennis_wta_finals",
+              "tennis_wta_guadalajara_open",
+              "tennis_wta_monterrey_open",
+              "tennis_wta_ningbo_open",
+              "tennis_wta_pan_pacific_open",
+              "tennis_wta_singapore_open",
+              "tennis_wta_us_open",
+              "tennis_wta_washington_open",
+              "tennis_wta_wimbledon",
+              "tennis_wta_wuhan_open",
+              "ucl",
+              "uwcl",
+              "wnba",
+              "wncaab"
+            ],
+            "vacias": [],
+            "faltantes": []
+          },
+          "served": {
+            "listadas": [
+              "brasileirao",
+              "bundesliga",
+              "chile",
+              "epl",
+              "laliga",
+              "ligamx",
+              "ligue1",
+              "mlb",
+              "mls",
+              "nba",
+              "ncaab",
+              "ncaaf",
+              "nfl",
+              "nhl",
+              "seriea",
+              "tennis_atp_canadian_open",
+              "tennis_atp_china_open",
+              "tennis_atp_cincinnati_open",
+              "tennis_atp_finals",
+              "tennis_atp_japan_open",
+              "tennis_atp_paris_masters",
+              "tennis_atp_shanghai_masters",
+              "tennis_atp_swiss_indoors",
+              "tennis_atp_us_open",
+              "tennis_atp_vienna_open",
+              "tennis_atp_washington_open",
+              "tennis_atp_wimbledon",
+              "tennis_wta_canadian_open",
+              "tennis_wta_china_open",
+              "tennis_wta_cincinnati_open",
+              "tennis_wta_finals",
+              "tennis_wta_guadalajara_open",
+              "tennis_wta_monterrey_open",
+              "tennis_wta_ningbo_open",
+              "tennis_wta_pan_pacific_open",
+              "tennis_wta_singapore_open",
+              "tennis_wta_us_open",
+              "tennis_wta_washington_open",
+              "tennis_wta_wimbledon",
+              "tennis_wta_wuhan_open",
+              "ucl",
+              "uwcl",
+              "wnba",
+              "wncaab"
+            ],
+            "cargadas": [
+              "brasileirao",
+              "bundesliga",
+              "chile",
+              "epl",
+              "laliga",
+              "ligamx",
+              "ligue1",
+              "mlb",
+              "mls",
+              "nba",
+              "ncaab",
+              "ncaaf",
+              "nfl",
+              "nhl",
+              "seriea",
+              "tennis_atp_canadian_open",
+              "tennis_atp_china_open",
+              "tennis_atp_cincinnati_open",
+              "tennis_atp_finals",
+              "tennis_atp_japan_open",
+              "tennis_atp_paris_masters",
+              "tennis_atp_shanghai_masters",
+              "tennis_atp_swiss_indoors",
+              "tennis_atp_us_open",
+              "tennis_atp_vienna_open",
+              "tennis_atp_washington_open",
+              "tennis_atp_wimbledon",
+              "tennis_wta_canadian_open",
+              "tennis_wta_china_open",
+              "tennis_wta_cincinnati_open",
+              "tennis_wta_finals",
+              "tennis_wta_guadalajara_open",
+              "tennis_wta_monterrey_open",
+              "tennis_wta_ningbo_open",
+              "tennis_wta_pan_pacific_open",
+              "tennis_wta_singapore_open",
+              "tennis_wta_us_open",
+              "tennis_wta_washington_open",
+              "tennis_wta_wimbledon",
+              "tennis_wta_wuhan_open",
+              "ucl",
+              "uwcl",
+              "wnba",
+              "wncaab"
+            ],
+            "vacias": [],
+            "faltantes": []
+          }
+        }
+      }
+    },
+    "configuracion": {
+      "yaml_vs_literales": {
+        "min_edge": {
+          "literal": 0.02,
+          "yaml": 0.02,
+          "coincide": true
+        },
+        "max_plausible_edge": {
+          "literal": 0.075,
+          "yaml": 0.075,
+          "coincide": true
+        },
+        "uncertainty_penalty": {
+          "literal": 0.35,
+          "yaml": 0.35,
+          "coincide": true
+        },
+        "anomaly_edge_gap": {
+          "literal": 0.06,
+          "yaml": 0.06,
+          "coincide": true
+        },
+        "anomaly_extra_penalty": {
+          "literal": 0.02,
+          "yaml": 0.02,
+          "coincide": true
+        },
+        "low_book_penalty": {
+          "literal": 0.015,
+          "yaml": 0.015,
+          "coincide": true
+        },
+        "min_books_for_consensus": {
+          "literal": 2,
+          "yaml": 2,
+          "coincide": true
+        },
+        "market_shrink": {
+          "literal": 0.5,
+          "yaml": 0.5,
+          "coincide": true
+        },
+        "line_movement_penalty": {
+          "literal": 0.0,
+          "yaml": 0.0,
+          "coincide": true
+        },
+        "line_velocity_penalty": {
+          "literal": 0.0,
+          "yaml": 0.0,
+          "coincide": true
+        },
+        "books_spread_penalty": {
+          "literal": 0.0,
+          "yaml": 0.0,
+          "coincide": true
+        }
+      },
+      "settings_market_shrink_efectivo": 0.5
+    }
+  },
+  "recuentos_e3": {
+    "filas_entrada": 84894,
+    "resultado_excluido_por_valor": {
+      "push": 1240,
+      "void": 670,
+      "half_loss": 174,
+      "half_win": 174
+    },
+    "sin_probabilidades": 19,
+    "filas_tras_filtros": 82617,
+    "picks_tras_colapso": 30839,
+    "picks_p_cal_fuera_de_rango": 0,
+    "picks_mercado_invalido_aud003": 236,
+    "picks_linea_cuarto_aud008": 154,
+    "eventos_sin_corte": 4623,
+    "picks_sin_corte": 30449,
+    "primera_servida_generated_at_ilegible": 0,
+    "primera_servida_posterior_a_t1": 5600,
+    "primera_servida_start_time_ilegible": 0,
+    "primera_servida_no_pregame": 0,
+    "n_eventos": 3887,
+    "n_picks": 24849
+  },
+  "chequeo_s": {
+    "n_filas": 20355,
+    "fraccion_edge_inconsistente": 0.0,
+    "descriptivo_solo_con_adjusted_probability": {
+      "n_filas": 15043,
+      "mediana_s_hat": 0.5,
+      "fraccion_fuera_de_0_05": 0.0
+    },
+    "verificable": true,
+    "ok": true,
+    "mediana_s_hat": 0.5,
+    "fraccion_fuera_de_0_05": 0.004716285924834193
+  },
+  "primario": {
+    "decision": "FALLA",
+    "modelo_peor": true,
+    "n_picks": 24849,
+    "n_eventos": 3887,
+    "brier_model": 0.24508,
+    "brier_market": 0.23184,
+    "brier_diff": 0.01324,
+    "brier_diff_lo": 0.0105,
+    "brier_diff_hi": 0.01607,
+    "veredicto_score": "mercado mejor"
+  },
+  "secundarios": {
+    "m": 0,
+    "segmentos": {},
+    "nota": "m = 0: no hay secundarios."
+  },
+  "segunda_puerta": {
+    "nota": "ninguna unidad paso la primera puerta: no se calcula."
+  },
+  "sensibilidades_sin_poder_de_decision": {
+    "todas_las_servidas_sin_colapsar": {
+      "n_filas": 69386,
+      "n_eventos": 3887,
+      "brier_diff": 0.012945834861787681,
+      "ic95_lo": 0.010032568391620969,
+      "ic95_hi": 0.01590199379651842,
+      "pasa": false
+    },
+    "sin_corte_t1": {
+      "decision": "FALLA",
+      "n_picks": 30449,
+      "n_eventos": 4623,
+      "brier_diff": 0.01654,
+      "brier_diff_lo": 0.01383,
+      "brier_diff_hi": 0.01922
+    }
+  },
+  "segundos": 142.5638336999982
+}
