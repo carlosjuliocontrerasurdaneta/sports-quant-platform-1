@@ -1,0 +1,18 @@
+{
+  "generator": "agent-architect",
+  "team": "sqp-superagent",
+  "version": "1.0.0",
+  "files": {
+    ".superagente/team.json": "5fb3519e09c0b2810e6fb1262b3d81668f6e583da7be2fb706c07ec738ba7649",
+    ".superagente/README.md": "7cc2ebae787e504ee2c0f50b458f43ca65ae8f97b18bda6ffd29faefa9716738",
+    ".claude/agents/sqp-temporal.md": "c99f2a84c7bcbd36e614a07c0c9327c6a59d007efc0e5fa651fe7122e4c72c7f",
+    ".claude/agents/sqp-mercados.md": "6186835c1e4fd5aa960a6b9addd78d9c5c7e632580b03fa7db31e60d3b1315e0",
+    ".claude/agents/sqp-operaciones.md": "131d53283d0a35bd4ecf7812466292a3f1d21a3e6fe3b3104b7c7d6001928cec",
+    ".claude/agents/sqp-superagent.md": "754cdbc186620c29d33bef27dde6ef112da37061e400b7e38535fa12e7f5906d",
+    ".superagente/hooks/guard_write.py": "2da7933143dabf6528b995d59adbacf7ba646aefb983dcf5a6b04a7649de943e",
+    ".codex/agents/sqp-temporal.toml": "41dfa992623dcd53b010ba79073475fe9a2023030fec624c812a282a12954e59",
+    ".codex/agents/sqp-mercados.toml": "48955683298ee7eeed46362e412e6288f1fb83da95f6f96377cd25571fde155b",
+    ".codex/agents/sqp-operaciones.toml": "978b5b3495e84bea4a4958d367223bd3d71e1906042527ff4174c85524c1a1ae",
+    ".superagente/runtime/openai/team_runtime.py": "327195b35dc723ce963ee711018e9140e9695d89a4666c1962115b882e0feec0"
+  }
+}

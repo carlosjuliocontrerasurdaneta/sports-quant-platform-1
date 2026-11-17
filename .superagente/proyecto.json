@@ -1,0 +1,10 @@
+{
+  "team": "sqp-superagent",
+  "version": "1.0.0",
+  "verified_context": [],
+  "lessons": [],
+  "rules": [
+    "Cada entrada lleva fecha, fuente y nivel de evidencia (diseñado, comprobado estáticamente o ejecutado).",
+    "No guardar credenciales ni datos personales."
+  ]
+}
