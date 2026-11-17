@@ -425,3 +425,10 @@ Cambios de código del 2026-11-10 y 2026-11-11 que afectan al árbol pero no al 
 4. **Enmienda 5 del portero NHL** (`e6d6bf3`; enmienda en `c7b41ee`): `HockeyAdapter` distingue portero no informado (`None`, proxy) de desconocido declarado (`""`, f = 1) y el script de medición aplica las decisiones de la enmienda. El factor sigue desactivado en producción: `goalie_beta` vale 0,0 por defecto (`src/sqp/sports/adapters.py:294`), ninguna configuración lo declara y con 0,0 la salida es idéntica al modelo sin porteros. No cambia ninguna fila servida; el script del portero no se ha ejecutado en ningún modo.
 
 Se registra **antes** de mirar ningún resultado del test. **No altera ningún criterio**, y queda prohibido usar este addendum para recortar o re-segmentar la ventana.
+
+## Addendum 2026-11-17 — fijación de T1 (antes de medir)
+
+Primera línea del registro `.contar.jsonl` con `n_eventos ≥ 3.402`: la del `--contar` oficial de E = 2026-11-17T20:34:56.565566+00:00 (HEAD `603cfa9`), con 3.887 eventos, 24.849 picks y ningún segmento con ≥ 800 eventos. Por E4, T1 = E − 14 días. Entre la línea anterior (2026-10-13, 2.394 eventos) y esta no hubo `--contar` oficiales; la frecuencia de E4 es recomendada y `--contar` no calcula nada que dependa de `result`, así que el retraso solo amplía la muestra por encima de N. Hoy se ejecutó antes un `--contar --no-log` de diagnóstico, que no cuenta. Corrección de hecho: el addendum 2026-11-11 dice que el script no se había ejecutado «en ningún modo»; sí se había ejecutado el `--contar` oficial del 2026-10-13 (línea 1 del registro). No se ha calculado ningún Brier, `diff`, acierto ni ROI. Revisión: Fable (rol de pre-registro de `.claude/automation/MODEL_ROUTING.md`). No altera ningún criterio y queda prohibido usarlo para recortar o re-segmentar la ventana.
+
+T1 fijado = 2026-11-03T20:34:56.565566+00:00
+commit del registro = e3e5572b5a6c13ed5ec04873153667111ad9487a
