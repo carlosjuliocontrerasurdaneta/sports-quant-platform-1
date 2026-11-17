@@ -1136,3 +1136,12 @@ Auditoría integral (segunda pasada, no ciega) sobre el árbol sucio. 4 hallazgo
 - `test_shadow_mode_records_picks_with_zero_stake` deja de ser vacuo (demo NHL).
 - Backtest antes/después de `9e08613`: tabla de `n_skipped_unreliable` y ROI en `Obsidian/Bitácora/2026-11-14.md` (mlb 257 saltados; NBA/NFL/NHL sin cambios). Los ROI históricos citados deben usar la columna «después».
 - Limpieza: worktree y rama del 13-11 borrados; dos ficheros excluidos borrados; el pytest huérfano ya no existía. Sigue para el operador: `git stash drop` (el clasificador deniega todo comando con `stash`).
+
+
+## 2026-11-17 — «Continúa con todas las tareas pendientes» (sobre main)
+
+- MM medido una sola vez: FALLA, modelo PEOR (diff Brier +0,01324, IC95 [+0,0105; +0,0161], 3.887 eventos, m = 0). Registro `e3e5572`, T1 `287984c`, resultado `7164c14` (informe de Fable). El operador mantuvo D1 antes del commit: `market_shrink` sigue en 0,5 (R6). T0 del pre-registro de peso del mercado queda fijado.
+- Fábrica superagent-architect `9ad5fba` (modelo por rol) e instalación `sqp-superagent` versionada (`358f3ef`).
+- Detalle en `Obsidian/Bitácora/2026-11-17.md`.
+- Lección: la regla de adopción reserva al operador revocar D1 hasta el commit del resultado; se le preguntó antes de commitear, aun con autorización general.
+- Pendiente: política de mercado tras MM, `park_bound`, mejoras de procedencia del script MM, `git stash drop` y el ZIP de la raíz (operador).

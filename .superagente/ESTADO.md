@@ -20,5 +20,5 @@ Poner en verde la suite rápida: `tests/test_claude_model_routing.py:140` exige 
 - Suite completa del proyecto `pytest -q` → 3713 passed, 1 skipped (exit 0, 67 min).
 
 ## Siguiente paso
-- Commit en superagent-architect del cambio de modelo (separado del trabajo ajeno pendiente) cuando el operador lo decida.
-- Pendientes del operador: `git stash drop stash@{0}` y la revisión D1.
+- HECHO 2026-11-17: commit `9ad5fba` en superagent-architect (solo los hunks del modelo; lifecycle y la regla de evals siguen sin commitear) e instalación versionada en SQP (`358f3ef`).
+- Pendientes del operador: `git stash drop stash@{0}`. D1 se mantuvo el 2026-11-17 (resultado MM `7164c14`).

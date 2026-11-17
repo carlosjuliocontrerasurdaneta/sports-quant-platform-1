@@ -518,3 +518,7 @@ Format:
 - Reason: identidad de fusión correcta; dobles conteos 0 con ambas reglas.
 - Alternatives: no fusionar, porque el impacto medido es nulo.
 - Consequences: queda un residual documentado: la recuperación de un aplazado jugada en un día libre solo la protege el contrato de `/scores`.
+
+## 2026-11-17 — MM: FALLA; `market_shrink` se queda en 0,5 (D1 mantenido)
+- Decision: medición única de «el modelo manda» = FALLA, modelo peor (`docs/research/2026-11-17-resultado-el-modelo-manda.md`, `7164c14`). Por la fila R6 de `docs/research/2026-11-13-regla-adopcion-tras-mm.md`, `market_shrink` sigue en 0,5. El operador mantuvo D1 antes del commit: la probabilidad congelada `cal(p_adj)` es la estimación y la mezcla 0,5 es política de decisión posterior a la congelación.
+- Consequences: D1 ya no es revocable. Queda fijado el T0 del pre-registro de peso del mercado por segmento.
