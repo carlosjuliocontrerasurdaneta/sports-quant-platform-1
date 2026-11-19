@@ -161,3 +161,55 @@ exige modelado aún no construido. No se promete beneficio en ninguna fase.
   muestra el avance; **no decide**. El gate sigue siendo la regla de salida
   del `prediction_gate`, evaluada aparte y con `stake 0` durante toda la fase.
 - **F5 (Fase 2) sigue bloqueada**: no se ha ejecutado backfill alguno.
+
+---
+
+## Addenda
+
+Se añaden por commits posteriores, sin editar nada de lo anterior.
+
+### Addendum 2026-11-19 — cambios de régimen del motor MLB durante la Fase 1: `pitcher_bound` 0.0 → 0.05 (2026-09-26) y `park_bound` 0.10 → 0.0 (antes de ejecutar)
+
+Redactado por Fable (rol de pre-registro de `.claude/automation/MODEL_ROUTING.md`), con el formato de los addenda de régimen de `2026-09-25-repreregistro-gate-k52.md`. Se registra **antes** del test de entrada de `mlb|team_totals`, que aún no ha alcanzado n = 300 (n = 110 eventos no empatados el 2026-11-02, según `2026-11-02-repreregistro-gate-k69.md` §2). Después de esas cifras no se ha calculado ninguna victoria, ningún p ni ningún `ev_flat` de este corte. Hoy solo se han contado capturas por instante, sin leer resultados.
+
+La probabilidad que sella la Fase 1 es la marginal pura por equipo, `score_pmf(lam_equipo)`, con `lam` = `adapter._rates` (`src/sqp/pipeline/team_totals_capture.py:345`). Por eso cualquier parámetro que entre en `_rates` cambia directamente la probabilidad sellada y la `d` del gate.
+
+**1. `pitcher_bound` 0.0 → 0.05 (cambio ya ocurrido; este documento no lo tenía registrado).**
+
+- Commit `49a6181`, 2026-09-26T08:09:21-03:00 (11:09:21Z): «feat(mlb): activa el factor del abridor (pitcher_bound 0.0 -> 0.05)», por orden del operador.
+- Ya estaba registrado como régimen en el addendum 2026-09-26 de `2026-09-25-repreregistro-gate-k52.md`.
+- Desde ese instante, la λ de cada equipo lleva el factor del abridor rival, acotado en ±5 %.
+- Recuento de hoy en `data/odds/team_totals_mlb_2026{09,10}.csv` (5.872 filas y 160 eventos, todos con capturas a un solo lado del corte):
+  - 92 eventos capturados antes del corte, con el motor sin abridor;
+  - 68 eventos capturados después, con abridor 0,05. Entre ellos está la postemporada, que no se gradúa por KI-072.
+- Es un recuento de eventos capturados, no de eventos graduados ni no empatados.
+
+**2. `park_bound` 0.10 → 0.0 (cambio futuro).**
+
+- Procede de la medición única de `2026-11-10-preregistro-park-bound-mlb.md`, que dio RECHAZA (commit `63fbb4a`; informe `2026-11-18-resultado-park-bound-mlb.md`).
+- La decisión del operador (§16.2 de aquel documento) es `park_bound = 0.0`. La tomó el coordinador por delegación, bajo la autorización total del 2026-11-19.
+- Efecto desde el commit que escribe `park_bound: 0.0` en `configs/leagues/ratings.yaml`, en la pausa invernal y antes del Opening Day de 2027. Hasta entonces regía 0,10, desde el 2026-06-22.
+- Efecto de primer orden en `team_totals`: el mismo `pf ∈ [0,90; 1,10]` multiplicaba las dos λ.
+- La última captura es del 2026-10-28. Todas las capturas de 2027 saldrán del valor nuevo si el commit precede a la primera. Si alguna se capturara antes, entra tal como operó.
+
+**Cómo se tratan las filas.** El test de entrada de `mlb|team_totals` (Fase 1 → gate) se hace sobre todas las selecciones elegibles desde la fecha de este pre-registro, con tres regímenes del motor:
+
+| periodo de captura | abridor | parque |
+|---|---|---|
+| antes de 2026-09-26T11:09:21Z (commit 49a6181) | 0,0 | 0,10 |
+| desde 2026-09-26T11:09:21Z hasta el fin de la temporada 2026 | 0,05 | 0,10 |
+| 2027 | 0,05 | 0,0 |
+
+No se separan, no se descartan y no se reponderan por régimen. Se evalúa el sistema tal como operó. Ninguno de los dos addenda se usa para recortar o re-segmentar la ventana, ni para cambiar la unidad.
+
+**Fase 0.** La Fase 0 se cerró con los parámetros que regían cuando se ejecutó. No se repite: ninguna regla de este documento la ata a un valor de parámetro. La cantidad sellada sigue siendo la misma por definición: la marginal `score_pmf(lam_equipo)` con los parámetros vigentes en cada captura. Que la Fase 0 no se haya medido con `pitcher_bound` 0,05 ni con `park_bound` 0,0 se declara como limitación, no como motivo para cambiar nada. Sus umbrales no se reabren.
+
+**Qué no cambia.**
+
+- El gate de la Fase 1: la misma regla de salida, con `n ≥ 300` no empatadas, test de signo pareado y EV a stake plano > 0.
+- El α: el vigente cuando llegue a n = 300 (hoy 23/32760, por la enmienda K = 69 del 2026-11-03, con K = 69 contando este corte).
+- La ventana: fuera de muestra desde la fecha de este pre-registro.
+- La exclusión de la postemporada no graduada (KI-072), los guardarraíles de créditos, el stake 0 y la histéresis.
+- H1, H2 y H3 (la H3 nula se mantiene sin predicción nueva), F5 bloqueada y los criterios de descarte.
+
+**No altera ningún criterio.** No se pre-declara ninguna partición por régimen, ni siquiera descriptiva: el test es único y el informe de `--report` no decide. Por tanto este addendum no deja ningún código pendiente.

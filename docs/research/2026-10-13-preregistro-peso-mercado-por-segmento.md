@@ -412,3 +412,31 @@ Las filas de (3) se excluyen también de este test: literal congelado `QUARTER_L
 ### Addendum 2026-10-20 (5) — `execution.books: [pinnacle]` (antes de T0)
 
 Desde el commit que declara `execution.books: [pinnacle]` (2026-10-20), `execution_price`/`execution_book` dejan de repetir la mediana y toman el precio de Pinnacle cuando cotiza la línea (si no, la mediana). `price_decimal`, edge, selección, stake y liquidación no cambian. Solo afecta a las métricas descriptivas de `execution_price`, que se informarán partidas antes/después de esta fecha. Redactado por Fable (rol de pre-registro de `.claude/automation/MODEL_ROUTING.md`). Corte: `generated_at` ≥ 2026-10-20T13:31:09Z (instante de f92e8e1); sin fecha legible, `sin_fecha`. Desglose en `execution_price_por_regimen` de cada política; el agregado se conserva. No altera ningún criterio y queda prohibido usarlo para recortar o re-segmentar la ventana.
+
+### Addendum 2026-11-19 (6) — `park_bound` MLB 0.10 → 0.0 (después de T0, antes de `--ajustar` y `--medir`)
+
+Redactado por Fable (rol de pre-registro de `.claude/automation/MODEL_ROUTING.md`). Es un cambio de régimen **posterior a T0** en el sentido de §10. T0 es el commit `7164c14`, de 2026-11-17T21:16:33Z, que añade `2026-11-17-resultado-el-modelo-manda.md`. Se escribe antes de cualquier `--ajustar`, que no puede ejecutarse antes de T0 + 14 d. No existe el `.sk.json` y no se ha calculado ningún `s_k`, `ŝ`, Brier ni `diff` de ninguna de las dos ventanas.
+
+**Hecho.** La medición única de `docs/research/2026-11-10-preregistro-park-bound-mlb.md` (PB) dio **RECHAZA** (commit `63fbb4a`; informe `docs/research/2026-11-18-resultado-park-bound-mlb.md`). La decisión del operador (PB §16.2) es **`park_bound = 0.0`**. La tomó el coordinador por delegación, bajo la autorización total del 2026-11-19. Desde el commit que la escribe en `configs/leagues/ratings.yaml`, el factor de parque MLB vale 1,0 en todos los partidos. Ese commit se hace en la pausa invernal, antes del Opening Day de 2027 (PB §13.2). Hasta ese commit regía 0,10, desde el 2026-06-22.
+
+**Qué segmentos toca.** Solo MLB, a través de `p_cal = cal(p_adj)`:
+
+- **`mlb|totals`**: efecto de primer orden.
+- **`mlb|spreads` y `mlb|h2h`**: efecto de segundo orden.
+- **`mlb|team_totals`** no está en `graded_*.csv`, porque vive en `data/odds/team_totals_mlb_*.csv`, y no forma parte de este test.
+
+Los nodos `baseball|*` y el global solo se ven afectados porque contienen esas filas. El `fair`, la reconstrucción de §4.4 y la tabla de régimen de `s` no cambian: `s` servido sigue en 0,5. Por eso este addendum **no contiene ninguna línea de la tabla de régimen de `s`**.
+
+**Cómo se tratan las filas.**
+
+- **Ventana de ajuste (`start_time ≤ T0`).** Todas sus filas MLB son de 2026 y se sirvieron bajo 0,10. La última fila MLB servida es del 2026-10-26 (`generated_at`), con `start_time` 2026-10-27. Se usan **todas**, sin recortar (§10). `_REGIME_CHANGES_PRE_T0` y S3 no cambian, porque S3 solo trata los cambios anteriores a T0.
+- **Ventana de evaluación (`start_time > T0`).** Hoy no contiene ninguna fila MLB, y las que entren serán de la temporada 2027. Si el commit precede a la primera fila MLB de 2027, todas saldrán del valor 0,0. Si alguna llegara a servirse antes, entra tal como operó.
+- Los segmentos MLB se evalúan con el `s_k` congelado en el `.sk.json`, aunque se ajustó sobre filas del régimen anterior. Es la transferencia ajuste → evaluación que ya declaran A1 y A2 (§12): el test evalúa el sistema tal como opera. No se re-ajusta ningún `s_k` de MLB, no se excluye ninguna fila MLB de ninguna de las dos ventanas y no se cambia la jerarquía.
+
+**S4 (única consecuencia, descriptiva).** El corte de S4 para este cambio es el committer date (UTC) del commit que escribe `park_bound: 0.0`. Ese instante no puede conocerse hoy, así que se anotará en un addendum de una línea tras el commit, sin calcular nada. Para los segmentos MLB, la partición es degenerada: todas sus filas de evaluación caen en «después» si el commit precede a la primera fila MLB de 2027.
+
+Precisión de implementación: hoy el script solo parte S4 por las entradas de la tabla de régimen de `s` (`scripts/research/measure_segment_market_weight.py:1206-1211`). Partir S4 por un cambio de modelo es código descriptivo pendiente, con revisión de Fable antes de `--medir`. No toca H1, el control de log loss, H2, Holm, la puerta de ROI ni la población. Si no estuviera implementado al medir, el informe lo declara y el veredicto no cambia.
+
+**Calibrador.** Si el operador retira el calibrador `mlb_totals` a no-op o lo cambia (PB §16.4), cambia `cal()` en las filas de evaluación de `mlb|totals`. Es otro cambio de régimen posterior a T0 y exige su propio addendum antes de `--medir`. Este addendum no lo cubre.
+
+**Qué no cambia.** Δ = 0,40, δ, N = 3.300, τ = 0,25, el umbral de 30 eventos, la jerarquía, T0, el margen de 14 días, la regla de T1, el procedimiento de `s_k`, los criterios de §6, §8 y §9, y la tabla de régimen de `s`. **No altera ningún criterio**, y queda prohibido usarlo para recortar o re-segmentar ninguna de las dos ventanas.

@@ -340,3 +340,31 @@ Desde el commit de la remediación de la ronda `audit-2026-10-18` (2026-10-18): 
 ## Addendum 4 (2026-10-20): `execution.books: [pinnacle]`. Antes de medir.
 
 Desde el commit que declara `execution.books: [pinnacle]` (2026-10-20), `execution_price`/`execution_book` dejan de repetir la mediana y toman el precio de Pinnacle cuando cotiza la línea (si no, la mediana). `price_decimal`, edge, selección, stake y liquidación no cambian. Solo afecta a las métricas descriptivas de `execution_price`, que se informarán partidas antes/después de esta fecha. Redactado por Fable (rol de pre-registro de `.claude/automation/MODEL_ROUTING.md`). Corte: `generated_at` ≥ 2026-10-20T13:31:09Z (instante de f92e8e1); sin fecha legible, `sin_fecha`. Desglose en `execution_price_por_regimen` de S6; el agregado se conserva. No altera ningún criterio y queda prohibido usarlo para recortar o re-segmentar la ventana.
+
+## Addendum 5 (2026-11-19): `park_bound` MLB 0.10 → 0.0. Antes de medir.
+
+Es un addendum de régimen en el sentido de §8 A2, con el formato de `2026-09-25-repreregistro-gate-k52.md`. Lo redacta Fable (rol de pre-registro de `.claude/automation/MODEL_ROUTING.md`). Se escribe sin haber mirado ningún resultado de la muestra: ni aciertos, ni brecha, ni `D̂`, ni tiers.
+
+**Hecho.** La medición única de `docs/research/2026-11-10-preregistro-park-bound-mlb.md` (PB) dio **RECHAZA** (commit `63fbb4a`; informe `docs/research/2026-11-18-resultado-park-bound-mlb.md`). La decisión del operador (PB §16.2) es **`park_bound = 0.0`**. La tomó el coordinador por delegación, bajo la autorización total del 2026-11-19. Desde el commit que la escribe en `configs/leagues/ratings.yaml`, el factor de parque MLB vale 1,0 en todos los partidos. Ese commit se hace en la pausa invernal, antes del Opening Day de 2027 (PB §13.2). Hasta entonces regía 0,10, desde el 2026-06-22.
+
+**Qué toca.** Solo los picks MLB del stream servido. Cambian su `p` de decisión y, con ella, `edge_pp` y `EV`, que son las entradas de `classify`:
+
+- **`totals`**: efecto de primer orden.
+- **`spreads` y `h2h`**: efecto de segundo orden.
+
+`team_totals` no está en `served_*.csv` y no forma parte de la población. El clasificador congelado en H (§2.5), el literal 0,075 y `TIER_A` no cambian.
+
+**Cómo se tratan las filas de 2027 frente a las anteriores.** La ventana (T0, T1] empieza en T0 = 2026-10-02T13:33:43Z y T1 se espera hacia julio de 2027 (§4.3). Contiene MLB de los dos regímenes:
+
+- **Bajo 0,10**: la postemporada de 2026, con primera servida entre T0 y el 2026-10-26. Recuento de hoy hecho con un script que solo devuelve agregados, sin clasificar el tier ni leer resultados: 144 picks MLB de todos los tiers, antes de los filtros de §2.4, en 23 eventos.
+- **Bajo 0,0**: toda la temporada 2027, si el commit precede a su primera fila servida. Si alguna fila de 2027 se sirviera antes del commit, entra tal como operó.
+
+Ninguna de las dos partes se recorta ni se excluye, y no se re-segmenta MLB. El primario usa la ventana entera, como manda A2: el test evalúa el tier A tal como operó.
+
+**Precisiones para que la medición siga siendo válida.**
+
+1. **Partición de S4.** La partición antes/después de este addendum (§5 S4, solo descriptiva) corta en el committer date (UTC) del commit que escribe `park_bound: 0.0`. Ese instante no se conoce hoy y se anotará en un addendum de una línea tras el commit. Para las filas MLB, y si el commit precede a la primera fila de 2027, la partición equivale a separar 2026 de 2027.
+2. **S4 todavía no está implementado.** `scripts/research/measure_tier_a_gap.py:1112` devuelve hoy «ningún addendum de régimen registrado todavía». La partición de S4 no está implementada para ningún addendum de régimen: ni para el 3 ni para este. Implementarla es código descriptivo pendiente, con revisión de Fable antes de `--medir`. No toca el primario, δ, N, T1, la población ni la clasificación de §6. Si no estuviera implementada al medir, el informe lo declara y el veredicto no cambia.
+3. **Calibrador `mlb_totals`.** Si el operador lo retira a no-op o lo cambia (PB §16.4), cambia la `p` de decisión de los totales MLB. Es otro cambio de régimen y exige su propio addendum antes de medir. Este addendum no lo cubre.
+
+**Lo que no cambia.** δ = 0,03, N = 2.100, la regla de T1 y el registro `.contar.jsonl` (no se reescribe ninguna línea), la zona del clúster, el clasificador de H, los filtros, el orden de operaciones y los criterios de §6. **No altera ningún criterio**, y queda prohibido usarlo para recortar o re-segmentar la ventana.

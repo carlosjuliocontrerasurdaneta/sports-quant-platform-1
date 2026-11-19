@@ -170,3 +170,39 @@ Si alguno pasara, habrá superado un listón del 59,7 % a n = 300 **y** tendrá 
 | Skill de salida | `.claude/skills/clv-shadow-exit/SKILL.md` | Ya incluido arriba. Al ser una skill, comprobar que el bloque `## Reglas comunes` no se toca (`test_quant_skills_share_an_identical_common_rules_block`) |
 
 La implementación debe estar en `main` antes del primer run en que `nhl|spreads` o `nhl|totals` alcancen n ≥ 300. Si un run llegara a evaluar uno de ellos antes del commit, su test se haría con 0,05/52, un criterio más laxo y fuera de lo pre-registrado. En ese caso, el corte afectado se registra como incidente: la decisión se anota y no se usa para abrir la puerta.
+
+---
+
+## Addenda
+
+Se añaden por commits posteriores al de este documento, sin editar nada de lo anterior. Los addenda del 2026-09-26, 2026-09-30 y 2026-10-18 del documento del 2026-09-25 siguen vigentes (§3.5).
+
+### Addendum 2026-11-19 — `park_bound` MLB 0.10 → 0.0 (antes de ejecutar)
+
+**Hecho.** La medición única de `docs/research/2026-11-10-preregistro-park-bound-mlb.md` (en adelante PB) dio **RECHAZA** (commit `63fbb4a`; informe `docs/research/2026-11-18-resultado-park-bound-mlb.md` y su JSON). Con ese veredicto, la decisión del operador (PB §16.2) es **`park_bound = 0.0`**, la propuesta de PB §12.3. La tomó el coordinador por delegación, bajo la autorización total del operador del 2026-11-19. La clave se escribe explícitamente y no se borra. Desde el commit que la escribe en `configs/leagues/ratings.yaml`, el factor de parque vale 1,0 en todos los partidos MLB: las dos λ dejan de multiplicarse por el mismo `pf ∈ [0,90; 1,10]` (`src/sqp/sports/adapters.py:213-224`). Hasta ese commit regía 0,10, desde el 2026-06-22. Según PB §13.2, el commit se hace en la pausa invernal, antes del Opening Day de 2027. La última fila MLB servida es del 2026-10-26 (`generated_at`) y no hay partidos MLB hasta 2027, así que todas las filas MLB servidas en 2027 saldrán del valor nuevo. Si alguna fila MLB de 2027 llegara a servirse antes del commit, se registrará tal como operó, sin recortarla.
+
+**Qué cortes toca.** Solo MLB. El gate usa `model_probability`, la probabilidad pura, tanto para `d` como para la condición 2, así que el cambio llega a `d` y a `ev_flat` sin pasar por ningún calibrador:
+
+- **`mlb|totals`**: efecto de primer orden, porque `pf` escala μ = λ_h + λ_a.
+- **`mlb|team_totals`**: efecto de primer orden. Su probabilidad es la marginal pura de cada λ (`adapter._rates`, `src/sqp/pipeline/team_totals_capture.py:345`), y esa λ lleva `pf`.
+- **`mlb|spreads` y `mlb|h2h`**: efecto de segundo orden. En el criterio 7 de PB, el Δ de log loss fue del orden de 10⁻⁵ a 10⁻⁴ (medido con b_C = 0,05 frente a 0, no con 0,10).
+
+Ningún otro corte cambia. **La definición de `d` no cambia.** Lo que cambia es su valor en las filas servidas desde el commit, porque cambia `model_probability`.
+
+**Cómo se tratan las filas de 2027 frente a las anteriores.**
+
+- **`mlb|h2h`, `mlb|spreads` y `mlb|totals`** gastaron su test único de entrada el 2026-09-25 y el 2026-09-26 (`agotado_test_unico`, §2). Este addendum no los reabre ni recalcula su decisión. Si algún día se liberan (`release_prediction_gate_latch`), el nuevo test se hará sobre la ventana que haya entonces, desde el 2026-08-16. Esa ventana mezcla filas de 2026 bajo 0,10 y filas de 2027 bajo 0,0, y no se recorta. El α de ese test será el vigente y se contará según la enmienda del 2026-11-03, §4.2 y §4.3.
+- **`mlb|team_totals`** aún no ha gastado su test. Iba por n = 110 eventos no empatados el 2026-11-02 (§2) y no llegará a n = 300 antes de la temporada 2027. Su test único mezclará los eventos de 2026 bajo 0,10 con los de 2027 bajo 0,0. Al menos unos 150 de los 300 primeros serán del régimen nuevo, aunque los 40 de postemporada de KI-072 llegaran a graduarse. Se evalúa el sistema tal como operó.
+- En ningún caso se separan, se descartan ni se reponderan las filas por régimen.
+
+**Lo que no cambia.** K = 69, el techo de 84, α_corte = 23/32760 = 0,000702 y la contabilidad del α consumido (enmienda del 2026-11-03, que este addendum no toca). Tampoco cambian `n ≥ 300`, la unidad (evento), la exclusión de empates, la condición 2, la ventana desde el 2026-08-16, el test único de entrada, el pestillo ni la H3 de `team_totals` (§5). No se añade ningún filtro de población ni ninguna entrada de `INVALID_BEFORE`.
+
+**Precisiones para que la medición siga siendo válida.**
+
+1. La decisión de PB §16.4 sobre el calibrador `mlb_totals` no altera ninguna `d` del gate, porque el gate no lee la probabilidad calibrada. Por ese motivo no necesita otro addendum aquí.
+2. Cualquier otro cambio de parámetro MLB antes del Opening Day, por ejemplo uno que salga del seguimiento de PB §13.6, exige su propio addendum antes de que entre en filas servidas.
+3. Se registra **antes** de ejecutar ningún test de `mlb|team_totals`. Después de las cifras del 2026-11-02 (§2) no se ha calculado ninguna victoria, ningún p ni ningún `ev_flat` de ese corte.
+
+**No altera ningún criterio**, y queda prohibido usarlo después para recortar o re-segmentar la ventana. Redactado por el escalón Fable (rol de pre-registro de `.claude/automation/MODEL_ROUTING.md`).
+
+**Procedencia de la decisión §16.2 y §16.5 de PB.** Órdenes textuales del operador en la sesión de Claude Code: el 2026-11-18, «Do whatever is necessary to reach that objective. I grant you full authorization to accomplish it»; el 2026-11-19, «Continúa con todas las tareas pendientes. Te otorgo mi autorización para llevarlas a cabo». Con esa delegación se toman las propuestas del pre-registro: `park_bound = 0.0` (§16.2) y el momento del cambio después de MM y antes del Opening Day 2027 (§16.5). Registro: `Obsidian/Bitácora/2026-11-19.md`.
