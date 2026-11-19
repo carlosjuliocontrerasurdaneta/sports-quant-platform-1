@@ -8,7 +8,9 @@ actualizada: 2026-09-26
 
 Regla de activación: una señal solo se enciende si **bate al baseline fuera de muestra** (held-out incluido). La regla funcionó en ambos sentidos — aceptó una, rechazó dos.
 
-## ✅ ACTIVA: Park factor MLB → totals (2026-06-22)
+## ⛔ RETIRADA 2026-11-19: Park factor MLB → totals (activada 2026-06-22)
+
+> Revalidada con datos deportivos el 2026-11-18 (pre-registro `docs/research/2026-11-10-preregistro-park-bound-mlb.md`): **RECHAZA** (b_C = 0,05; fallan los criterios 1, 2, 5 y 7). `park_bound` pasa a 0.0 en `6ccbca3`. Lo de abajo es el registro histórico de por qué se activó (cifras de ROI sobre cuotas capturadas, no de desenlaces). Ver [[Bitácora/2026-11-19]].
 
 - `sqp/models/park.py::ParkFactors`: carreras en juegos de LOCAL vs de VISITA del mismo equipo (aísla el parque del nivel ofensivo). Regresado por muestra, acotado, walk-forward (leakage-safe). Escala AMBAS lambdas → mueve Over/Under, no el moneyline.
 - Evidencia OOS: totals ROI −17.1% → **+2.8%** (bound 0.10); MLB global +2.4% → +7.8%; held-out confirma (−15.9% → +3.8%/+7.0%).

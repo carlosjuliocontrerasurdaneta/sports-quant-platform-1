@@ -368,3 +368,5 @@ Ninguna de las dos partes se recorta ni se excluye, y no se re-segmenta MLB. El 
 3. **Calibrador `mlb_totals`.** Si el operador lo retira a no-op o lo cambia (PB §16.4), cambia la `p` de decisión de los totales MLB. Es otro cambio de régimen y exige su propio addendum antes de medir. Este addendum no lo cubre.
 
 **Lo que no cambia.** δ = 0,03, N = 2.100, la regla de T1 y el registro `.contar.jsonl` (no se reescribe ninguna línea), la zona del clúster, el clasificador de H, los filtros, el orden de operaciones y los criterios de §6. **No altera ningún criterio**, y queda prohibido usarlo para recortar o re-segmentar la ventana.
+
+**Addendum 2026-11-19 (corte S4 de `park_bound`, una línea).** El commit que escribe `park_bound: 0.0` es `6ccbca3`, con committer date 2026-11-19T17:05:37Z (UTC): ese es el corte de S4 del addendum anterior. Se anota sin calcular nada.

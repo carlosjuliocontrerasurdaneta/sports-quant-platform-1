@@ -440,3 +440,5 @@ Precisión de implementación: hoy el script solo parte S4 por las entradas de l
 **Calibrador.** Si el operador retira el calibrador `mlb_totals` a no-op o lo cambia (PB §16.4), cambia `cal()` en las filas de evaluación de `mlb|totals`. Es otro cambio de régimen posterior a T0 y exige su propio addendum antes de `--medir`. Este addendum no lo cubre.
 
 **Qué no cambia.** Δ = 0,40, δ, N = 3.300, τ = 0,25, el umbral de 30 eventos, la jerarquía, T0, el margen de 14 días, la regla de T1, el procedimiento de `s_k`, los criterios de §6, §8 y §9, y la tabla de régimen de `s`. **No altera ningún criterio**, y queda prohibido usarlo para recortar o re-segmentar ninguna de las dos ventanas.
+
+**Addendum 2026-11-19 (corte S4 de `park_bound`, una línea).** El commit que escribe `park_bound: 0.0` es `6ccbca3`, con committer date 2026-11-19T17:05:37Z (UTC): ese es el corte de S4 del addendum anterior. Se anota sin calcular nada.
