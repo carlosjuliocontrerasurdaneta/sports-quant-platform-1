@@ -57,14 +57,9 @@ def test_consensus_even_book_count_uses_true_median():
     assert _consensus_lines(eo)[("h2h", "A", None)] == 1.9
 
 
-def test_default_config_unpauses_mlb_totals_with_park_factor():
-    # MLB totals was paused 2026-06-14, UN-PAUSED 2026-06-22 once the ballpark
-    # factor (ratings.yaml mlb.park_bound) fixed totals OOS.
+def test_default_config_does_not_statically_pause_mlb_totals():
     settings = Settings.load()
     assert "totals" not in settings.paused_markets.get("mlb", [])
-    from sqp.config import CONFIG_DIR, load_yaml
-    mlb = (load_yaml(CONFIG_DIR / "leagues" / "ratings.yaml").get("leagues") or {}).get("mlb", {})
-    assert float(mlb.get("park_bound", 0.0)) > 0.0   # park factor enabled
 
 
 @pytest.mark.slow

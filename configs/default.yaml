@@ -213,9 +213,11 @@ calibration:
   auto_promote: false
 # Markets suspended from staking (still estimated; picks recorded flagged
 # "market_paused", stake 0). MLB totals was paused 2026-06-14 (realized ROI
-# negative vs positive estimated edge); UN-PAUSED 2026-06-22 after the ballpark
-# run-environment factor (ratings.yaml mlb.park_bound 0.10) fixed totals OOS
-# (-17.1% -> +2.8% ROI). Re-pause if realized totals ROI turns negative again.
+# negative vs positive estimated edge); UN-PAUSED 2026-06-22 after a ballpark
+# run-environment factor. That factor was withdrawn 2026-11-19 (ratings.yaml
+# mlb.park_bound 0.0; REJECTED by the 2026-11-18 revalidation). The pause state
+# is now governed by the degradation monitor and the operator. Re-pause if
+# realized totals ROI turns negative again.
 paused_markets: {}
 # Shadow mode (ENABLED 2026-07-04, LIFTED 2026-08-16 by explicit operator
 # decision): while true, picks were selected exactly as in real mode but

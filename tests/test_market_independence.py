@@ -482,9 +482,9 @@ def test_tuning_modules_do_not_import_roi_engine():
 
 # Parametros cuya justificacion por ROI es HEREDADA (09 P8; 05-informe-de-riesgos
 # R2): heredados de junio de 2026, pendientes de revalidacion por log loss
-# (docs/prompts-audit/05-informe-de-riesgos.md R2).
+# (docs/prompts-audit/05-informe-de-riesgos.md R2). park_bound salio de la lista
+# el 2026-11-19: se revalido con datos deportivos (RECHAZA) y se fijo en 0.0.
 LEGACY_ROI_JUSTIFIED = {
-    "configs/leagues/ratings.yaml": {"park_bound"},
     "configs/default.yaml": {"max_plausible_edge", "uncertainty_penalty"},
 }
 # Menciones de ROI en bloques de politica operativa (interruptores de pausa /
@@ -538,7 +538,7 @@ def _roi_justified_keys(text: str) -> set[str]:
 def test_roi_justified_values_are_only_the_declared_legacy_ones():
     """P8b (09 P8 «Candado propuesto» b; 05-informe-de-riesgos R2): los
     comentarios de ratings.yaml y default.yaml que justifican un valor por ROI
-    estan en la lista LEGACY_ROI_JUSTIFIED (park_bound, max_plausible_edge,
+    estan en la lista LEGACY_ROI_JUSTIFIED (max_plausible_edge,
     uncertainty_penalty: heredados de junio de 2026, pendientes de
     revalidacion por log loss). Una justificacion nueva por ROI falla; una
     entrada obsoleta de la lista tambien."""
@@ -550,6 +550,17 @@ def test_roi_justified_values_are_only_the_declared_legacy_ones():
             f"{rel}: justificacion nueva por ROI en {sorted(found - allowed)}; "
             "P8 prohibe elegir parametros por ROI (usar log loss/Brier/ECE)")
         assert not (allowed - found), f"{rel}: entradas obsoletas {sorted(allowed - found)}"
+
+
+def test_mlb_park_bound_resolves_to_explicit_zero():
+    """2026-11-19: park_bound MLB retirado (RECHAZA, 2026-11-18); 0.0 explicito."""
+    from sqp.pipeline.daily import _league_meta
+    from sqp.sports.registry import get_adapter
+    meta = _league_meta("mlb")
+    lp = meta["league_params"]
+    assert lp.get("park_bound") == 0.0          # escrito explicito, no ausente
+    ad = get_adapter("mlb", meta["family"], lp)
+    assert ad.params["park_bound"] == 0.0 and ad.park.bound == 0.0
 
 
 def test_roi_scanner_detects_new_justification():

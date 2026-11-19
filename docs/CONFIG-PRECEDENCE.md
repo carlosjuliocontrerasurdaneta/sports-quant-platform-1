@@ -67,7 +67,7 @@ fútbol, `soccer.yaml`).
 | Parámetro | Capa que lo fija | Valor efectivo |
 |---|---|---|
 | `pitcher_bound` | `ratings.yaml` (`mlb:`) | **0.05** → ajuste por abridor **activo** desde 2026-09-26 (factor en [0,95; 1,05]) |
-| `park_bound` | `ratings.yaml` (`mlb:`) | **0.10** → ajuste de λ del total (OOS-validado) |
+| `park_bound` | `ratings.yaml` (`mlb:`) | **0.0** → sin ajuste de λ del total (retirado 2026-11-19; RECHAZA del 2026-11-18) |
 | `tilt_scale` | `ratings.yaml` pisa familia (0.8 → **0.4**) | 0.4 |
 | `pitcher_prior_starts` | `ratings.yaml` | 5.0 |
 | `pitcher_signal` | ninguna capa lo fija → **default de código** | `"ra"` (carreras permitidas por apertura) |

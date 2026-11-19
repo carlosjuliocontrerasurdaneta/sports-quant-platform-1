@@ -22,12 +22,17 @@ leagues:
     pitcher_bound: 0.05
     pitcher_prior_starts: 5.0
     tilt_scale: 0.4
-    # Ballpark run-environment factor on the total (sqp.models.park). ENABLED
-    # 2026-06-22: on captured odds it flips MLB totals from -17.1% to +2.8% ROI
-    # (held-out -15.9% -> +3.8%/+7.0%) and lifts overall MLB ROI +2.4% -> +7.8%.
-    # 0.10 chosen over 0.20 (less over-correction). One season, single-snapshot
-    # proxy -> not a profit claim. mlb/totals un-paused alongside this.
-    park_bound: 0.10
+    # Ballpark run-environment factor on the total (sqp.models.park). DISABLED
+    # 2026-11-19: 0.0 = no-op (family default). Key kept explicit because
+    # scripts/validate_oos.py freezes it. Sports-data-only revalidation
+    # (docs/research/2026-11-10-preregistro-park-bound-mlb.md, single run on
+    # 2026-11-18, docs/research/2026-11-18-resultado-park-bound-mlb.md):
+    # REJECTED -- the selected bound 0.05 failed criteria 1, 2, 5 and 7 (log loss
+    # gain below the margin, worse in 2 of 3 test seasons, worse ECE, moneyline
+    # worse). The former 0.10 had been chosen on captured odds, not on outcomes.
+    # Regime change registered beforehand in the gate K=69, segment market-weight
+    # and tier-A pre-registrations. Reopening needs a new pre-registered hypothesis.
+    park_bound: 0.0
   mls:
     elo_home_adv: 30.0
     elo_home_away_split: true

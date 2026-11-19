@@ -1,6 +1,6 @@
 """AUD-004: `frozen_train` y `family_default` de scripts/validate_oos.py deben
-conservar los parametros canonicos NO tuneados (park_bound, pitcher_bound,
-avg_total...) y diferir de `full_history` solo en las claves tuneadas."""
+conservar los parametros canonicos NO tuneados (pitcher_bound, avg_total y
+park_bound, este ultimo fijado en 0.0 desde 2026-11-19...) y diferir de `full_history` solo en las claves tuneadas."""
 from __future__ import annotations
 
 import importlib.util
@@ -41,6 +41,7 @@ def cli(monkeypatch):
 def test_frozen_mlb_conserva_park_y_pitcher_bound_canonicos(cli):
     canon = _league_meta("mlb")["league_params"]
     assert canon["pitcher_bound"] != 0.0 and "park_bound" in canon
+    assert canon["park_bound"] == 0.0
     frozen = cli._freeze_on_train([], "mlb", "baseball", False, 0, 1, canon)
     assert frozen["pitcher_bound"] == canon["pitcher_bound"]
     assert frozen["park_bound"] == canon["park_bound"]
