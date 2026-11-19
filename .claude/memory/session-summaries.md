@@ -1145,3 +1145,11 @@ Auditoría integral (segunda pasada, no ciega) sobre el árbol sucio. 4 hallazgo
 - Detalle en `Obsidian/Bitácora/2026-11-17.md`.
 - Lección: la regla de adopción reserva al operador revocar D1 hasta el commit del resultado; se le preguntó antes de commitear, aun con autorización general.
 - Pendiente: política de mercado tras MM, `park_bound`, mejoras de procedencia del script MM, `git stash drop` y el ZIP de la raíz (operador).
+
+
+## 2026-11-18/19 — /doctor, «autorización total» y «Continúa con todas las tareas pendientes» (sobre main)
+
+- `park_bound` MLB medido una sola vez: RECHAZA (b_C = 0,05; fallan C1, C2, C5, C7). Resultado `63fbb4a`; addenda §13.3 `03e9efe`; `park_bound` 0.10 -> 0.0 en `6ccbca3` (Fable APTO; 2.907 tests); corte S4 y Obsidian `4632249`. Todo pusheado.
+- /doctor: plugins, MCP `graphify` y skills sin uso desactivados en ajustes de usuario/locales; las ediciones de `CLAUDE.md`, `.claude/CLAUDE.md`, la skill `cierre-de-jornada` y el borrado de `coding-standards.md` siguen SIN COMMITEAR (el clasificador denegó el commit dos veces).
+- Detalle en `Obsidian/Bitácora/2026-11-19.md`; pendientes en `Obsidian/Tareas.md`.
+- Pendiente del operador: `promote_calibration.py --demote mlb_totals` (y luego addendum de una línea), reintento de 19 fechas del portero NHL, commit de lo de /doctor, `git stash drop`. Pendiente técnico: anclar la regex `T1 fijado` de `measure_tier_a_gap.py:1361` antes de julio de 2027 (revisión Fable).
