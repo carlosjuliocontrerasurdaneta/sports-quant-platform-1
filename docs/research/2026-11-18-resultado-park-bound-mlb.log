@@ -1,0 +1,33 @@
+2026-11-18 15:03:54,168 | WARNING | sqp.storage.results | [mlb] 15 fila(s) con game_id repetido descartadas al leer (AUD-003: partido reanudado o equipo renombrado)
+[park_bound] paridad OK
+[park_bound] rejilla b=0.0 lista
+[park_bound] rejilla b=0.05 lista
+[park_bound] rejilla b=0.1 lista
+[park_bound] rejilla b=0.15 lista
+[park_bound] rejilla b=0.2 lista
+[park_bound] rejilla b=0.3 lista
+[park_bound] rejilla b=0.5 lista
+[park_bound] C particion A: a=0.003034
+[park_bound] C particion B: a=-0.019739
+[park_bound] C particion C: a=-0.017834
+[park_bound] criterios y bootstrap listos
+[park_bound] T2 b=0.0: a=0.003034
+[park_bound] T2 b=0.05: a=0.005795
+[park_bound] T2 b=0.1: a=0.006775
+[park_bound] T2 b=0.15: a=0.004094
+[park_bound] T2 b=0.2: a=0.002306
+[park_bound] T2 b=0.3: a=0.001397
+[park_bound] T2 b=0.0: a=-0.019739
+[park_bound] T2 b=0.05: a=-0.016935
+[park_bound] T2 b=0.1: a=-0.016162
+[park_bound] T2 b=0.15: a=-0.018105
+[park_bound] T2 b=0.2: a=-0.019690
+[park_bound] T2 b=0.3: a=-0.020419
+[park_bound] T2 b=0.0: a=-0.017834
+[park_bound] T2 b=0.05: a=-0.016052
+[park_bound] T2 b=0.1: a=-0.015444
+[park_bound] T2 b=0.15: a=-0.016877
+[park_bound] T2 b=0.2: a=-0.018357
+[park_bound] T2 b=0.3: a=-0.019369
+escrito C:\dev\3\snapshots\park-bound-mlb-20261118\resultado.json
+exit=0

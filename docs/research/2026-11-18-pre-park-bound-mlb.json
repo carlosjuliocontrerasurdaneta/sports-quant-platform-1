@@ -1,0 +1,628 @@
+{
+  "clases_de_equivalencia_entrenamiento": {
+    "A": [
+      [
+        0.0
+      ],
+      [
+        0.05
+      ],
+      [
+        0.1
+      ],
+      [
+        0.15
+      ],
+      [
+        0.2
+      ],
+      [
+        0.3,
+        0.5
+      ]
+    ],
+    "B": [
+      [
+        0.0
+      ],
+      [
+        0.05
+      ],
+      [
+        0.1
+      ],
+      [
+        0.15
+      ],
+      [
+        0.2
+      ],
+      [
+        0.3,
+        0.5
+      ]
+    ],
+    "C": [
+      [
+        0.0
+      ],
+      [
+        0.05
+      ],
+      [
+        0.1
+      ],
+      [
+        0.15
+      ],
+      [
+        0.2
+      ],
+      [
+        0.3,
+        0.5
+      ]
+    ]
+  },
+  "claves_equipo_local_por_temporada": {
+    "2023": {
+      "arizona diamondbacks": 81,
+      "atlanta braves": 81,
+      "baltimore orioles": 81,
+      "boston red sox": 77,
+      "chicago cubs": 78,
+      "chicago white sox": 80,
+      "cincinnati reds": 77,
+      "cleveland guardians": 81,
+      "colorado rockies": 81,
+      "detroit tigers": 81,
+      "houston astros": 77,
+      "kansas city royals": 77,
+      "los angeles angels": 81,
+      "los angeles dodgers": 77,
+      "miami marlins": 76,
+      "milwaukee brewers": 80,
+      "minnesota twins": 81,
+      "new york mets": 81,
+      "new york yankees": 77,
+      "oakland athletics": 78,
+      "philadelphia phillies": 81,
+      "pittsburgh pirates": 81,
+      "san diego padres": 77,
+      "san francisco giants": 81,
+      "seattle mariners": 77,
+      "st louis cardinals": 77,
+      "tampa bay rays": 78,
+      "texas rangers": 77,
+      "toronto blue jays": 81,
+      "washington nationals": 77
+    },
+    "2024": {
+      "arizona diamondbacks": 81,
+      "atlanta braves": 81,
+      "baltimore orioles": 81,
+      "boston red sox": 81,
+      "chicago cubs": 81,
+      "chicago white sox": 81,
+      "cincinnati reds": 81,
+      "cleveland guardians": 80,
+      "colorado rockies": 81,
+      "detroit tigers": 81,
+      "houston astros": 81,
+      "kansas city royals": 81,
+      "los angeles angels": 81,
+      "los angeles dodgers": 81,
+      "miami marlins": 81,
+      "milwaukee brewers": 81,
+      "minnesota twins": 81,
+      "new york mets": 81,
+      "new york yankees": 81,
+      "oakland athletics": 81,
+      "philadelphia phillies": 81,
+      "pittsburgh pirates": 81,
+      "san diego padres": 81,
+      "san francisco giants": 81,
+      "seattle mariners": 81,
+      "st louis cardinals": 81,
+      "tampa bay rays": 81,
+      "texas rangers": 81,
+      "toronto blue jays": 81,
+      "washington nationals": 81
+    },
+    "2025": {
+      "arizona diamondbacks": 81,
+      "athletics": 81,
+      "atlanta braves": 81,
+      "baltimore orioles": 81,
+      "boston red sox": 81,
+      "chicago cubs": 81,
+      "chicago white sox": 81,
+      "cincinnati reds": 81,
+      "cleveland guardians": 81,
+      "colorado rockies": 81,
+      "detroit tigers": 81,
+      "houston astros": 81,
+      "kansas city royals": 81,
+      "los angeles angels": 81,
+      "los angeles dodgers": 81,
+      "miami marlins": 81,
+      "milwaukee brewers": 81,
+      "minnesota twins": 81,
+      "new york mets": 81,
+      "new york yankees": 81,
+      "philadelphia phillies": 81,
+      "pittsburgh pirates": 81,
+      "san diego padres": 81,
+      "san francisco giants": 81,
+      "seattle mariners": 81,
+      "st louis cardinals": 81,
+      "tampa bay rays": 81,
+      "texas rangers": 81,
+      "toronto blue jays": 81,
+      "washington nationals": 81
+    },
+    "2026": {
+      "arizona diamondbacks": 81,
+      "athletics": 80,
+      "atlanta braves": 81,
+      "baltimore orioles": 81,
+      "boston red sox": 80,
+      "chicago cubs": 81,
+      "chicago white sox": 80,
+      "cincinnati reds": 81,
+      "cleveland guardians": 81,
+      "colorado rockies": 81,
+      "detroit tigers": 80,
+      "houston astros": 81,
+      "kansas city royals": 80,
+      "los angeles angels": 81,
+      "los angeles dodgers": 81,
+      "miami marlins": 80,
+      "milwaukee brewers": 80,
+      "minnesota twins": 80,
+      "new york mets": 81,
+      "new york yankees": 80,
+      "philadelphia phillies": 80,
+      "pittsburgh pirates": 81,
+      "san diego padres": 80,
+      "san francisco giants": 80,
+      "seattle mariners": 80,
+      "st louis cardinals": 81,
+      "tampa bay rays": 81,
+      "texas rangers": 81,
+      "toronto blue jays": 80,
+      "washington nationals": 80
+    }
+  },
+  "claves_solo_en_algunas_temporadas": {
+    "athletics": [
+      "2025",
+      "2026"
+    ],
+    "oakland athletics": [
+      "2023",
+      "2024"
+    ]
+  },
+  "config_sha256": {
+    "configs/default.yaml": "8d497e8bf514846f27229cd7f7b1beb8e94ef146d80ccbda643b4428f490a457",
+    "configs/leagues/ratings.yaml": "eed4222bd32628e138de0bf68e25ef55d904ca323b7e4cdc51ea5b7cbe770357",
+    "configs/leagues/soccer.yaml": "ecd31cc1f37b675d5f7cd6911c887121c2e09f597a8df03950474dd44ac6c51e",
+    "configs/leagues/team_aliases.yaml": "7ebc8ca7d7a78c9e0af46187143983cdf4dba82527991d08036154dc1c34f3f3",
+    "configs/venues.yaml": "58b0794305d86e1bd7c7e4f6ad79686b209c93071db1f224abca24186e43c3aa"
+  },
+  "constantes": {
+    "CUTOFF": "2026-09-26",
+    "MARGIN": 0.002,
+    "MIN_EVAL": 200,
+    "N_BOOT": 10000,
+    "SEED": 42,
+    "TOL": 1e-12,
+    "WARMUP": 60
+  },
+  "cota_050_no_vinculante": true,
+  "delta_p_por_cota": {
+    "0.0": {
+      "max": 0.0,
+      "min": 0.0,
+      "n": 9644,
+      "p1": 0.0,
+      "p25": 0.0,
+      "p5": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p95": 0.0,
+      "p99": 0.0
+    },
+    "0.05": {
+      "max": 0.04055693815694367,
+      "min": -0.04243034538678764,
+      "n": 9644,
+      "p1": -0.041547438862276825,
+      "p25": -0.03557148901880629,
+      "p5": -0.04101433767664639,
+      "p50": -0.002209696161124708,
+      "p75": 0.03459626906627643,
+      "p95": 0.0397040543575466,
+      "p99": 0.04011406123021606
+    },
+    "0.1": {
+      "max": 0.07912184023362573,
+      "min": -0.08639654501744448,
+      "n": 9644,
+      "p1": -0.08324229569685987,
+      "p25": -0.03557148901880629,
+      "p5": -0.08178853046141492,
+      "p50": -0.002209696161124708,
+      "p75": 0.03459626906627643,
+      "p95": 0.07734572123606118,
+      "p99": 0.07765487899918273
+    },
+    "0.15": {
+      "max": 0.11583463126807525,
+      "min": -0.12811067964311185,
+      "n": 9644,
+      "p1": -0.12256873417770175,
+      "p25": -0.03557148901880629,
+      "p5": -0.08768592910056168,
+      "p50": -0.002209696161124708,
+      "p75": 0.03459626906627643,
+      "p95": 0.1099727538637217,
+      "p99": 0.11360440901458066
+    },
+    "0.2": {
+      "max": 0.15072480992456788,
+      "min": -0.14509552093750938,
+      "n": 9644,
+      "p1": -0.12364859510043734,
+      "p25": -0.03557148901880629,
+      "p5": -0.08768592910056168,
+      "p50": -0.002209696161124708,
+      "p75": 0.03459626906627643,
+      "p95": 0.11043818757530174,
+      "p99": 0.1473266603634162
+    },
+    "0.3": {
+      "max": 0.20251748586354412,
+      "min": -0.14509552093750938,
+      "n": 9644,
+      "p1": -0.12364859510043734,
+      "p25": -0.03557148901880629,
+      "p5": -0.08768592910056168,
+      "p50": -0.002209696161124708,
+      "p75": 0.03459626906627643,
+      "p95": 0.11043818757530174,
+      "p99": 0.18364138515139886
+    },
+    "0.5": {
+      "max": 0.20251748586354412,
+      "min": -0.14509552093750938,
+      "n": 9644,
+      "p1": -0.12364859510043734,
+      "p25": -0.03557148901880629,
+      "p5": -0.08768592910056168,
+      "p50": -0.002209696161124708,
+      "p75": 0.03459626906627643,
+      "p95": 0.11043818757530174,
+      "p99": 0.18364138515139886
+    }
+  },
+  "distribucion_f": {
+    "A": {
+      "entrenamiento": {
+        "max": 1.2747426981919334,
+        "min": 0.8537682789651294,
+        "n": 2370,
+        "p1": 0.8767686720198594,
+        "p25": 0.9349437829701027,
+        "p5": 0.891716315724316,
+        "p50": 0.9955805388407579,
+        "p75": 1.0588005663214561,
+        "p95": 1.1634862838976054,
+        "p99": 1.2527837962367665
+      },
+      "fraccion_factor_1_0_test": 0.0004116920543433512,
+      "fraccion_sin_muestra_test": 0.0,
+      "test": {
+        "max": 1.2501363586778664,
+        "min": 0.8460622710622712,
+        "n": 2429,
+        "p1": 0.856519838523621,
+        "p25": 0.9510440101584708,
+        "p5": 0.8858723049358654,
+        "p50": 0.9960100487660707,
+        "p75": 1.0432606519563044,
+        "p95": 1.1388129443448591,
+        "p99": 1.2289480739253205
+      }
+    },
+    "B": {
+      "entrenamiento": {
+        "max": 1.2747426981919334,
+        "min": 0.8460622710622712,
+        "n": 4799,
+        "p1": 0.8596838364516644,
+        "p25": 0.9417324380470015,
+        "p5": 0.8896067732529562,
+        "p50": 0.9959691139903155,
+        "p75": 1.0514659418967884,
+        "p95": 1.148501726169468,
+        "p99": 1.2406940700082107
+      },
+      "fraccion_factor_1_0_test": 0.0012345679012345679,
+      "fraccion_sin_muestra_test": 0.00041152263374485596,
+      "test": {
+        "max": 1.2822006998757032,
+        "min": 0.8298131180359245,
+        "n": 2430,
+        "p1": 0.8439244510258131,
+        "p25": 0.9654174903840479,
+        "p5": 0.8963541589490003,
+        "p50": 1.0000020609725548,
+        "p75": 1.0437596516833845,
+        "p95": 1.1208222551705558,
+        "p99": 1.2653893319766187
+      }
+    },
+    "C": {
+      "entrenamiento": {
+        "max": 1.2822006998757032,
+        "min": 0.8298131180359245,
+        "n": 7229,
+        "p1": 0.8544380307044152,
+        "p25": 0.9510597671317563,
+        "p5": 0.8914853218466304,
+        "p50": 0.9977728877349021,
+        "p75": 1.0482716049382717,
+        "p95": 1.1410500435565116,
+        "p99": 1.2551085323073492
+      },
+      "fraccion_factor_1_0_test": 0.0008281573498964803,
+      "fraccion_sin_muestra_test": 0.0,
+      "test": {
+        "max": 1.283871057928875,
+        "min": 0.8408302637593096,
+        "n": 2415,
+        "p1": 0.8473223685578848,
+        "p25": 0.963304822982969,
+        "p5": 0.9182573052135691,
+        "p50": 0.9956763934320044,
+        "p75": 1.0368237100339173,
+        "p95": 1.2034961860341138,
+        "p99": 1.2732245623459222
+      }
+    },
+    "combinado_test": {
+      "fraccion_factor_1_0": 0.0008248556502612042,
+      "fraccion_sin_muestra": 0.00013747594171020073,
+      "test": {
+        "max": 1.283871057928875,
+        "min": 0.8298131180359245,
+        "n": 7274,
+        "p1": 0.847827031921339,
+        "p25": 0.960516255189346,
+        "p5": 0.8960887626182074,
+        "p50": 0.9974256642996772,
+        "p75": 1.0400983125338787,
+        "p95": 1.1403227644114635,
+        "p99": 1.2613799017074308
+      }
+    }
+  },
+  "escenarios_KL": {
+    "0.0": {
+      "E_KL_test_combinado": 0.0
+    },
+    "0.05": {
+      "E_KL_test_combinado": 0.0018637285517410665
+    },
+    "0.1": {
+      "E_KL_test_combinado": 0.004037021569458043
+    },
+    "0.15": {
+      "E_KL_test_combinado": 0.00547663688588043
+    },
+    "0.2": {
+      "E_KL_test_combinado": 0.006220650291854775
+    },
+    "0.3": {
+      "E_KL_test_combinado": 0.0069450101853936255
+    },
+    "0.5": {
+      "E_KL_test_combinado": 0.0069450101853936255
+    }
+  },
+  "folds": {
+    "A": {
+      "test_end": "2024-12-31",
+      "test_start": "2024-01-01",
+      "train_end": "2023-12-31"
+    },
+    "B": {
+      "test_end": "2025-12-31",
+      "test_start": "2025-01-01",
+      "train_end": "2024-12-31"
+    },
+    "C": {
+      "test_end": "2026-09-26",
+      "test_start": "2026-01-01",
+      "train_end": "2025-12-31"
+    }
+  },
+  "fraccion_recortada_por_cota": {
+    "A": {
+      "entrenamiento": {
+        "0.0": 0.9814345991561182,
+        "0.05": 0.5924050632911393,
+        "0.1": 0.20970464135021097,
+        "0.15": 0.06118143459915612,
+        "0.2": 0.026160337552742614,
+        "0.3": 0.0,
+        "0.5": 0.0
+      },
+      "test": {
+        "0.0": 0.9995883079456567,
+        "0.05": 0.4730341704405105,
+        "0.1": 0.18073281185673115,
+        "0.15": 0.03993412927130506,
+        "0.2": 0.03087690407575134,
+        "0.3": 0.0,
+        "0.5": 0.0
+      }
+    },
+    "B": {
+      "entrenamiento": {
+        "0.0": 0.9906230464680141,
+        "0.05": 0.5319858303813294,
+        "0.1": 0.19504063346530529,
+        "0.15": 0.05042717232756824,
+        "0.2": 0.02854761408626797,
+        "0.3": 0.0,
+        "0.5": 0.0
+      },
+      "test": {
+        "0.0": 0.9987654320987654,
+        "0.05": 0.40041152263374485,
+        "0.1": 0.1259259259259259,
+        "0.15": 0.05555555555555555,
+        "0.2": 0.03333333333333333,
+        "0.3": 0.0,
+        "0.5": 0.0
+      }
+    },
+    "C": {
+      "entrenamiento": {
+        "0.0": 0.9933600774657629,
+        "0.05": 0.48775764282750034,
+        "0.1": 0.17180799557338497,
+        "0.15": 0.0521510582376539,
+        "0.2": 0.030156314842993498,
+        "0.3": 0.0,
+        "0.5": 0.0
+      },
+      "test": {
+        "0.0": 0.9991718426501035,
+        "0.05": 0.3440993788819876,
+        "0.1": 0.09937888198757763,
+        "0.15": 0.07577639751552795,
+        "0.2": 0.05093167701863354,
+        "0.3": 0.0,
+        "0.5": 0.0
+      }
+    }
+  },
+  "git_head": "04dae1a4921f03c9dd2580587fda545f4eab4749",
+  "git_status_porcelain": "",
+  "grid": [
+    0.0,
+    0.05,
+    0.1,
+    0.15,
+    0.2,
+    0.3,
+    0.5
+  ],
+  "manifiesto": {
+    "data/historical/results_mlb.csv": {
+      "filas": 9733,
+      "sha256": "a25db212c635ad165205e3397ddd1bedb25a0cb71708e9a0195df24bdd4d7cb4"
+    },
+    "data/historical/starters_mlb.csv": {
+      "filas": 6319,
+      "sha256": "aad4615b2c54e2b4a87fa6b2cc352900644ecf65aaa8bf2545d7734c9eb99773"
+    }
+  },
+  "media_P_over_por_brazo": {
+    "0.0": 0.44903133893611835,
+    "0.05": 0.4475349779910486,
+    "0.1": 0.4472096420091254,
+    "0.15": 0.4483238370760151,
+    "0.2": 0.4496500792110658,
+    "0.3": 0.4506431911362681,
+    "0.5": 0.4506431911362681
+  },
+  "modo": "pre (sin desenlaces ni cuotas)",
+  "parametros_resueltos": {
+    "adapter_params": {
+      "avg_total": 8.7,
+      "dispersion_k": 3.8,
+      "elo_home_adv": 25,
+      "elo_k": 6,
+      "home_scoring_bonus": 0.1,
+      "max_score": 25,
+      "park_bound": 0.1,
+      "pitcher_bound": 0.05,
+      "pitcher_prior_starts": 5.0,
+      "tilt_scale": 0.4
+    },
+    "league_params": {
+      "park_bound": 0.1,
+      "pitcher_bound": 0.05,
+      "pitcher_prior_starts": 5.0,
+      "tilt_scale": 0.4
+    }
+  },
+  "pricing_kwargs": {
+    "dc_rho": 0.0,
+    "dispersion_k": 3.8,
+    "max_goals": 25,
+    "score_rho": 0.0,
+    "three_way": false,
+    "tie_adds_goal": false
+  },
+  "procedencia": {
+    "abridores_adjuntos_ambos": 6299,
+    "corte": "2026-09-26",
+    "descartadas_por_dedupe_game_id_hasta_corte": 15,
+    "fichero": "C:\\dev\\3\\snapshots\\park-bound-mlb-20261118\\data\\historical\\results_mlb.csv",
+    "filas_con_dedupe_hasta_corte": 9704,
+    "filas_con_dedupe_total": 9718,
+    "filas_sin_dedupe_hasta_corte": 9719,
+    "filas_sin_dedupe_total": 9733
+  },
+  "recortados_con_cota_0_50_total": 0,
+  "recuentos": {
+    "diferencia_evaluados": 0,
+    "evaluados_total": 9644,
+    "particiones": {
+      "A": {
+        "dias_test": 185,
+        "min_eval_ok": true,
+        "n_entrenamiento": 2370,
+        "n_test": 2429
+      },
+      "B": {
+        "dias_test": 184,
+        "diferencia_dias_test": 0,
+        "diferencia_n_test": 0,
+        "min_eval_ok": true,
+        "n_entrenamiento": 4799,
+        "n_test": 2430,
+        "referencia": {
+          "days": 184,
+          "games": 2430
+        }
+      },
+      "C": {
+        "dias_test": 183,
+        "diferencia_dias_test": 0,
+        "diferencia_n_test": 0,
+        "min_eval_ok": true,
+        "n_entrenamiento": 7229,
+        "n_test": 2415,
+        "referencia": {
+          "days": 183,
+          "games": 2415
+        }
+      }
+    },
+    "referencia_evaluados": 9644
+  },
+  "referencias_seccion_6": {
+    "descartadas_dedupe_referencia": 15,
+    "diferencia_filas": 0,
+    "filas_tras_corte": 9704
+  },
+  "segundos": 187.66417659999934,
+  "segundos_calculo": 186.57398420000027
+}
