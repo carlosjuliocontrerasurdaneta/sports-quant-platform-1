@@ -370,3 +370,22 @@ Ninguna de las dos partes se recorta ni se excluye, y no se re-segmenta MLB. El 
 **Lo que no cambia.** δ = 0,03, N = 2.100, la regla de T1 y el registro `.contar.jsonl` (no se reescribe ninguna línea), la zona del clúster, el clasificador de H, los filtros, el orden de operaciones y los criterios de §6. **No altera ningún criterio**, y queda prohibido usarlo para recortar o re-segmentar la ventana.
 
 **Addendum 2026-11-19 (corte S4 de `park_bound`, una línea).** El commit que escribe `park_bound: 0.0` es `6ccbca3`, con committer date 2026-11-19T17:05:37Z (UTC): ese es el corte de S4 del addendum anterior. Se anota sin calcular nada.
+
+## Addendum 6 (2026-11-20): retirada del calibrador `mlb_totals`. Antes de medir.
+
+Es el addendum que exige la precisión 3 del Addendum 5, con el mismo formato de régimen de §8 A2. Lo redacta Fable (rol de pre-registro de `.claude/automation/MODEL_ROUTING.md`). Se escribe sin haber mirado ningún resultado de la muestra: ni aciertos, ni brecha, ni `D̂`, ni tiers.
+
+**Hecho.** PB §16.4 (`docs/research/2026-11-10-preregistro-park-bound-mlb.md`; informe `docs/research/2026-11-18-resultado-park-bound-mlb.md`) recomienda retirar el calibrador `mlb_totals` como consecuencia de `park_bound` 0.10 → 0.0 (`6ccbca3`). El operador lo ordenó directamente el 2026-11-20 y se ejecutó con `python scripts/promote_calibration.py --demote mlb_totals --reason "park_bound 0.10 -> 0.0 (6ccbca3)" --yes`. Fila de `data/models/promotion_log.csv`: `2026-11-20T21:47:18.046142+00:00`, `mlb_totals`, `demoted: park_bound 0.10 -> 0.0 (6ccbca3)`. El calibrador live era `isotonic`. Tras la retirada, el registro live (`data/models/calibration_methods.json`) solo contiene `mlb_spreads: beta` y `wnba_spreads: beta`, y el artefacto live de `mlb_totals` ya no existe. Con `method: auto` (`configs/default.yaml:207`), un grupo sin registro hace que `apply_calibration` devuelva la probabilidad sin cambios (`src/sqp/calibration/calibrator.py:1115-1157`, estado `none`). Así, en los totales MLB `p_cal = p_model` (`src/sqp/pipeline/probabilities.py:299-305`).
+
+**Qué toca.** Solo los picks `mlb|totals` del stream servido. Cambia su `p` de decisión (`(1 − s)·p_cal + s·fair`) y, con ella, `edge_pp` y `EV`, que son las entradas de `classify`. La clave del calibrador es `"<liga>_<mercado>"` (`calibration_key`, `calibrator.py:1193`): `mlb|spreads` sigue con `beta` y `mlb|h2h` ya se servía en crudo, así que ninguno de los dos cambia. `team_totals` no forma parte de la población. El clasificador congelado en H (§2.5), el literal 0,075 y `TIER_A` no cambian.
+
+**Cómo se tratan las filas.** El corte de régimen es el instante de la fila del log, 2026-11-20T21:47:18Z. Es posterior a T0 (2026-10-02T13:33:43Z) y anterior a cualquier fila MLB de 2027. Ninguna fila MLB se ha servido desde el 2026-10-26.
+
+- **Antes del corte**: los totales MLB de la postemporada de 2026, servidos con `isotonic`.
+- **Después del corte**: los totales MLB de 2027, servidos en crudo. Si el operador vuelve a promover un calibrador `mlb_totals` antes de medir, es otro cambio de régimen y exige su propio addendum.
+
+Ninguna de las dos partes se recorta ni se excluye, y no se re-segmenta MLB. El primario usa la ventana entera, como manda A2: el test evalúa el tier A tal como operó.
+
+**Partición de S4.** Para este addendum, la partición descriptiva de §5 S4 corta en 2026-11-20T21:47:18Z, el instante del log y no un committer date, porque la retirada no la hace ningún commit. Para los totales MLB equivale a separar 2026 de 2027, igual que el corte de `6ccbca3`. S4 sigue sin implementar (precisión 2 del Addendum 5); vale lo dicho allí.
+
+**Lo que no cambia.** δ = 0,03, N = 2.100, la regla de T1 y el registro `.contar.jsonl` (no se reescribe ninguna línea), la zona del clúster, el clasificador de H, los filtros, el orden de operaciones y los criterios de §6. **No altera ningún criterio**, y queda prohibido usarlo para recortar o re-segmentar la ventana.
