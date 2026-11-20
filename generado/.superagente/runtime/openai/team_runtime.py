@@ -83,6 +83,22 @@ def relative_inside(project_root: str, path: str) -> str | None:
     return None if rel == "." else rel.replace(os.sep, "/")
 
 
+def _ambiguous_segment(*paths: str) -> str | None:
+    """Primer segmento que Windows interpretaría distinto de como se compara:
+    flujos alternativos (`a:b`, `.env::$DATA`) o puntos/espacios finales que
+    el sistema elimina al abrir (`.env.`, `.env `). Se miran la ruta pedida y
+    la resuelta, porque la resolución no siempre los normaliza. La unidad de
+    una ruta absoluta (`C:`) no cuenta."""
+    for p in paths:
+        _, rest = os.path.splitdrive(p)
+        for seg in _split(rest):
+            if seg == "..":  # lo resuelve `relative_inside`
+                continue
+            if ":" in seg or seg.endswith((".", " ")):
+                return seg
+    return None
+
+
 def write_denial(project_root: str, path: str, patterns: list[str] | tuple[str, ...],
                  *, exact: list[str] | tuple[str, ...] = ()) -> str | None:
     """Motivo para bloquear una escritura, o None si está permitida.
@@ -95,9 +111,9 @@ def write_denial(project_root: str, path: str, patterns: list[str] | tuple[str, 
     rel = relative_inside(project_root, path)
     if rel is None:
         return f"'{path}' está fuera del proyecto"
-    for seg in _split(rel):
-        if ":" in seg or seg.endswith((".", " ")):
-            return f"segmento ambiguo '{seg}'"
+    seg = _ambiguous_segment(path, rel)
+    if seg is not None:
+        return f"segmento ambiguo '{seg}'"
     if rel.casefold() in {"/".join(_split(e)).casefold() for e in exact}:
         return None
     hit = is_protected(rel)
@@ -115,6 +131,9 @@ def read_denial(project_root: str, path: str) -> str | None:
     rel = relative_inside(project_root, path)
     if rel is None:
         return f"'{path}' está fuera del proyecto"
+    seg = _ambiguous_segment(path, rel)
+    if seg is not None:
+        return f"segmento ambiguo '{seg}'"
     if rel.casefold() in GUARD_SECRET_FILES:
         return f"'{rel}' puede contener credenciales"
     for part in _split(rel):
@@ -139,7 +158,8 @@ def read_text(path: str) -> str:
     reason = read_denial(PROJECT_ROOT, path)
     if reason:
         return "BLOQUEADO: " + reason
-    full = os.path.join(PROJECT_ROOT, path)
+    # Se abre la ruta que se validó (resuelta y relativa), no la pedida.
+    full = os.path.join(PROJECT_ROOT, relative_inside(PROJECT_ROOT, path))
     if not os.path.isfile(full):
         return "NO EXISTE: " + path
     if os.path.getsize(full) > MAX_READ_BYTES:
@@ -166,7 +186,7 @@ def write_text(role_id: str, path: str, content: str) -> str:
     reason = write_denial(PROJECT_ROOT, path, role["write_scope"])
     if reason:
         return "BLOQUEADO: " + reason
-    full = os.path.join(PROJECT_ROOT, path)
+    full = os.path.join(PROJECT_ROOT, relative_inside(PROJECT_ROOT, path))
     os.makedirs(os.path.dirname(full) or PROJECT_ROOT, exist_ok=True)
     with open(full, "w", encoding="utf-8") as fh:
         fh.write(content)
