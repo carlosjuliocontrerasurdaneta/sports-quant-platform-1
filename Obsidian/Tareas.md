@@ -10,7 +10,7 @@ Pendientes activos del proyecto, por prioridad. Al completar una: marcarla, anot
 
 ## Pendientes al cierre del 2026-11-13
 
-- [ ] **Operador:** `! git stash drop stash@{0}` (`e165ab6`). Su contenido ya está en `main` vía `wip/portero-nhl-stash`. El clasificador lo denegó a Claude.
+- [x] **HECHO 2026-11-20 (operador):** `git stash drop stash@{0}` → `Dropped stash@{0} (e165ab698c4e…)`. Su contenido ya está en `main` vía `wip/portero-nhl-stash`. El clasificador lo denegó a Claude.
 - [x] **HECHO 2026-11-14** (autorizado): `rm .claude/settings.json.graphify-bak .github/copilot-instructions.md`. Revisados el 2026-11-13: no tienen valor. Denegado a Claude.
 - [x] **2026-11-14:** ya no estaba vivo el pytest huérfano PID 18784 (de las 14:35 del 2026-11-13). `Stop-Process` denegado a Claude.
 - [x] **HECHO 2026-11-14:** borrado el worktree `C:\dev\3\sqp-wt-20261113` y la rama `fix/pendientes-20261113`, ya fusionada en `main` (`9449c38`).
@@ -54,7 +54,7 @@ Pendientes activos del proyecto, por prioridad. Al completar una: marcarla, anot
 - [ ] **Operador, consola elevada**: `wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true` (AUD-007).
 - [x] **HECHO 2026-11-13** (`9e08613`, autorizado por el operador; diagnóstico, especificación y revisión de Fable, APTO CON CAMBIOS aplicados): las filas con `reliability_warning` pasan a candidates con stake 0 y `low_reliability`, fuera de served y de calibrador, degradación, hit rates, ranking y captura de cierre; `live_calibration_state` y el token `uncalibrated`; el backtest salta esos eventos y declara `parity`. Pendiente: re-ejecutar el backtest y anotar el antes y el después de `n_skipped_unreliable` (ROI históricos citados). Texto original: Sin autorizar, informados el 2026-11-07: paridad del run diario frente al backtest en `_decision_probability`; calibrador ausente sin aviso; `daily.py` descarta la fila con `reliability_warning` (contradice «un gate quita el stake, nunca la fila»).
 - [x] Opcionales de la verificación: punto ciego del detector de desplazamiento en `append_csv_log`; lock entre procesos de `promotion_log.csv`. Hecho el 2026-11-08 con revisión Fable APTO. Ver [[Bitácora/2026-11-08]].
-- [ ] Operador: decidir si borrar `.claude/settings.json.graphify-bak` y `.github/copilot-instructions.md` (sin seguimiento). **2026-11-13:** revisados, no tienen valor (el primero es `settings.json` antes de los hooks de graphify, del que el actual es un superconjunto; el segundo, un stub de claude-mem). El borrado lo denegó el clasificador: `! rm .claude/settings.json.graphify-bak .github/copilot-instructions.md`.
+- [x] **HECHO 2026-11-20:** `.claude/settings.json.graphify-bak` y `.github/copilot-instructions.md` ya no existen (comprobado con `Test-Path`). Texto original: decidir si borrarlos (sin seguimiento). **2026-11-13:** revisados, no tienen valor (el primero es `settings.json` antes de los hooks de graphify, del que el actual es un superconjunto; el segundo, un stub de claude-mem). El borrado lo denegó el clasificador: `! rm .claude/settings.json.graphify-bak .github/copilot-instructions.md`.
 
 ## Derivados MLB — Fase 1 en marcha (2026-09-19)
 
