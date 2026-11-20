@@ -1,6 +1,5 @@
 # Sports Quant Platform
 
-- Python package: `src/sqp`; tests: `tests`; operational scripts: `scripts`.
 - Search before broad exploration. If the target file, symbol, schema, or path is already known, read it directly.
 - Never load complete CSV/Parquet datasets or broad `data/` (incluidos `data/historical/`, `data/odds/`, `data/predictions/`, `data/models/`) or `logs/` trees into model context. Programmatic full-dataset scans are allowed when necessary if only targeted aggregates, schemas, samples, or findings are returned to context.
 - Keep changes scoped to the requested behavior. Do not perform unrelated refactors, formatting, dependency updates, cleanup, or documentation unless requested or required by the Obsidian rule below.
@@ -17,22 +16,7 @@
 
 # Cierre de jornada y sincronización con GitHub
 
-Orden permanente del operador (2026-10-12). **Comando de activación:** cuando el operador escriba «guarda los cambios y cierra sesión», ejecuta este procedimiento completo:
-
-0. Finaliza primero todas las tareas pendientes (orden del operador, 2026-10-17). Lo que dependa de un permiso denegado o de una decisión del operador no bloquea el cierre: se informa en el paso 12 con el comando o la decisión exacta que falta.
-1. Guarda todos los archivos y cambios pendientes que estén bajo tu control.
-2. Comprueba el estado del repositorio mediante `git status`.
-3. Identifica la rama activa y su repositorio remoto.
-4. Revisa los cambios realizados durante la sesión.
-5. Comprueba que no se incluyan contraseñas, tokens, claves API, archivos `.env` ni otros datos sensibles.
-6. Ejecuta las pruebas pertinentes cuando estén disponibles.
-7. Prepara exclusivamente los archivos que correspondan al trabajo realizado.
-8. Crea un commit con un mensaje descriptivo si existen cambios pendientes.
-9. Comprueba si hay cambios remotos nuevos. Si es necesario integrarlos, hazlo de forma segura, sin sobrescribir trabajo ni resolver conflictos arbitrariamente.
-10. Ejecuta `git push` hacia la rama remota correspondiente.
-11. Verifica que el push se haya completado correctamente y comprueba nuevamente `git status`.
-12. Entrega un informe final con la rama, el identificador del commit, el resultado de las pruebas y el estado de sincronización con GitHub.
-13. Finaliza la interacción de la sesión.
+Orden permanente del operador (2026-10-12). **Comando de activación:** cuando el operador escriba «guarda los cambios y cierra sesión», invoca la skill `cierre-de-jornada` (`.claude/skills/cierre-de-jornada/SKILL.md`) y ejecuta su procedimiento completo.
 
 Reglas de seguridad:
 - Nunca utilices `git push --force`.
@@ -42,8 +26,6 @@ Reglas de seguridad:
 - Si existen conflictos, errores de pruebas o fallos de autenticación, informa del problema y solicita intervención cuando sea necesaria.
 - Nunca declares que GitHub está actualizado sin verificar el resultado de la sincronización.
 - No omitas las comprobaciones anteriores aunque la instrucción de cierre sea breve.
-
-Encaje con las reglas existentes: este cierre no sustituye a `/memoria-guardar` (obligatorio al cerrar una sesión que cambió código, configuración, datos operativos o decisiones; ver `.claude/CLAUDE.md`) ni a la regla de notas Obsidian de arriba; cuando apliquen, se hacen antes del paso 7 para que entren en el mismo commit.
 
 # Compact instructions
 
