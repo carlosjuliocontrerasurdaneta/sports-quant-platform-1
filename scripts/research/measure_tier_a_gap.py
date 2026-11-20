@@ -1357,12 +1357,22 @@ def parse_t1_addendum(doc_text: str) -> tuple[str, str] | None:
 
         T1 fijado = <ISO-8601>
         commit del registro = <sha-git>
+
+    Ambas deben ser LINEAS literales al inicio de linea: las citas en prosa o
+    entre comillas inversas (el propio pre-registro cita el formato en 4.3 y
+    en la ambiguedad 3) NO cuentan, ni los valores ISO ilegibles. `None` si
+    faltan; aborta si hay varios T1 o commits validos distintos (mismo
+    criterio que `measure_segment_market_weight.parse_t1_addendum`).
     """
-    m_t1 = re.search(r"T1 fijado\s*=\s*(\S+)", doc_text)
-    m_commit = re.search(r"commit del registro\s*=\s*([0-9a-fA-F]{7,40})", doc_text)
-    if not m_t1 or not m_commit:
+    t1s = [m for m in re.findall(r"(?m)^[ \t]*T1 fijado[ \t]*=[ \t]*(\S+)[ \t]*$", doc_text)
+           if _parse_ts(m) is not None]
+    cms = re.findall(r"(?m)^[ \t]*commit del registro[ \t]*=[ \t]*([0-9a-fA-F]{7,40})[ \t]*$",
+                     doc_text)
+    if not t1s or not cms:
         return None
-    return m_t1.group(1), m_commit.group(1)
+    if len({_parse_ts(x) for x in t1s}) > 1 or len(set(cms)) > 1:
+        raise SystemExit("Hay varios addenda de T1 distintos en el pre-registro. --medir aborta.")
+    return t1s[-1], cms[-1]
 
 
 def _parse_jsonl_text(text: str) -> list[dict]:

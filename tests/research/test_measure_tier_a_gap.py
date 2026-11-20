@@ -1160,6 +1160,27 @@ def test_parse_t1_addendum_extracts_t1_and_commit(mod):
     assert commit == "abcdef0123456789abcdef0123456789abcdef01"
 
 
+def test_parse_t1_addendum_ignores_the_format_quoted_in_the_real_preregistro(mod):
+    """El pre-registro real cita `T1 fijado = <ISO-8601>` entre comillas
+    inversas (4.3 y ambiguedad 3): sin anclar, esa cita se tomaba por T1."""
+    real = (ROOT / "docs" / "research"
+            / "2026-10-02-preregistro-brecha-tier-a.md").read_text(encoding="utf-8")
+    assert "`T1 fijado = <ISO-8601>`" in real
+    assert mod.parse_t1_addendum(real) is None
+    ok = "\n## Addenda\nT1 fijado = 2027-07-01T00:00:00Z\ncommit del registro = abcdef1\n"
+    assert mod.parse_t1_addendum(real + ok) == ("2027-07-01T00:00:00Z", "abcdef1")
+
+
+def test_parse_t1_addendum_rejects_inline_unreadable_and_conflicting_values(mod):
+    assert mod.parse_t1_addendum("ver T1 fijado = 2027-07-01T00:00:00Z y\n"
+                                 "commit del registro = abcdef1\n") is None
+    assert mod.parse_t1_addendum("T1 fijado = manana\ncommit del registro = abcdef1\n") is None
+    ok = "T1 fijado = 2027-07-01T00:00:00Z\ncommit del registro = abcdef1\n"
+    with pytest.raises(SystemExit):
+        mod.parse_t1_addendum(ok + "T1 fijado = 2027-07-02T00:00:00Z\n")
+    assert mod.parse_t1_addendum(ok + "T1 fijado = 2027-07-01T00:00:00+00:00\n") is not None
+
+
 # -------------------------------------------------------- resolucion de H/T0 --
 def test_resolve_h_t0_aborts_when_tag_and_fallback_disagree(mod, monkeypatch, tmp_path):
     monkeypatch.setattr(mod, "git_rev_parse", lambda ref, cwd: "aaaa")
