@@ -181,3 +181,52 @@ def test_los_picks_reales_llevan_away_asi_que_la_guarda_no_esta_inerte():
     assert _grade(fila, 1, 0, "C. Alcaraz") == "void"
     # Y con el nombre casando, se gradua normal: la guarda no rompe el caso sano.
     assert _grade(fila, 1, 0, "Carlos Alcaraz") == "win"
+
+
+# --- Orientacion invertida entre feeds (sede neutral) -------------------------
+#
+# audit-2026-11-22 AUD-005: en partidos de sede neutral (NCAAB) /scores puede
+# listar como local al VISITANTE del feed de cuotas. La guarda comparaba la
+# seleccion con el local de scores y con el visitante de cuotas, asi que el
+# local de cuotas no casaba con ninguno y salia `void` definitivo, mientras el
+# otro lado del mismo partido se graduaba. Caso real: Bethune-Cookman (local en
+# cuotas) frente a Furman, que /scores lista como local; Furman gana 79-70.
+
+
+def _row_odds(market, selection, line=0.0, home="Bethune-Cookman Wildcats",
+              away="Furman Paladins"):
+    return pd.Series({"market": market, "selection": selection, "line": line,
+                      "home": home, "away": away})
+
+
+def test_inverted_orientation_grades_the_odds_home_side():
+    # hs/as_ y `home` vienen de /scores: local de scores = Furman (79), visitante 70.
+    assert _grade(_row_odds("h2h", "Bethune-Cookman Wildcats"), 79, 70,
+                  "Furman Paladins") == "loss"
+    assert _grade(_row_odds("h2h", "Furman Paladins"), 79, 70,
+                  "Furman Paladins") == "win"
+
+
+def test_inverted_orientation_grades_spreads_including_quarter_lines():
+    # Bethune +4 pierde por 9: loss. +9 es push; +9.25 es medio-gana.
+    assert _grade(_row_odds("spreads", "Bethune-Cookman Wildcats", 4.0), 79, 70,
+                  "Furman Paladins") == "loss"
+    assert _grade(_row_odds("spreads", "Bethune-Cookman Wildcats", 9.0), 79, 70,
+                  "Furman Paladins") == "push"
+    assert _grade(_row_odds("spreads", "Bethune-Cookman Wildcats", 9.25), 79, 70,
+                  "Furman Paladins") == "half_win"
+    assert _grade(_row_odds("spreads", "Furman Paladins", -4.0), 79, 70,
+                  "Furman Paladins") == "win"
+
+
+def test_inverted_orientation_still_voids_a_selection_matching_no_team():
+    # La guarda AUD-LOW-001 sigue intacta: ningun equipo -> void.
+    assert _grade(_row_odds("h2h", "Equipo Inexistente"), 79, 70,
+                  "Furman Paladins") == "void"
+
+
+def test_odds_home_is_not_accepted_when_scores_home_is_a_third_team():
+    # Si el local de scores no es el visitante de cuotas, no es una inversion:
+    # el emparejamiento es dudoso y se mantiene el void.
+    assert _grade(_row_odds("h2h", "Bethune-Cookman Wildcats"), 79, 70,
+                  "Otro Equipo") == "void"

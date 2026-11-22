@@ -984,3 +984,35 @@ El operador delegó el 2026-11-10, con autorización expresa, las cuatro decisio
 ### Lo que esta enmienda exige antes de `--pre`
 
 Implementación con tests (Sonnet), revisión de Fable **antes** del commit y commit en `main`, porque el HEAD que registra `--pre` tiene que ser el del modo completo (Enmienda 3(f)). Después, por este orden: reintento de las 19 fechas fallidas (Enmienda 2(c)2, operador), instantánea congelada fuera de `data/` y de cualquier checkout git (decisión del 2026-10-01), árbol limpio, `--parity-only` sobre la instantánea, `--pre`, enmienda con las diferencias frente a §10 y Enmienda 3(d) y con las listas de (1) y (3), y el modo completo inmediatamente después.
+
+---
+
+## Enmienda 6 (2026-11-22, antes del modo completo, sin resultados vistos): paridad rota por 9de724f (audit-2026-11-22, AUD-003)
+
+Se registra en la ronda `audit-2026-11-22`, hallazgo AUD-003. **Nada de esta enmienda se ha decidido mirando resultados:** el modo completo no se ha ejecutado, y el defecto se detectó con tests sintéticos, sin leer datos reales ni campos de desenlace. **No cambia ningún criterio de la sección 8**, ni las filas, las particiones, la métrica q, los parámetros, k, beta, el tope, el proxy, los brazos, la regla E, la instantánea congelada ni la reconstrucción del instrumento.
+
+### (a) El `--pre` #1 y lo que cambió después
+
+- El `--pre` #1 (`C:\dev\sqp-snapshots\portero-nhl-20261121-out\pre1.json`) se ejecutó sobre el HEAD `04f3015`, con el árbol limpio, sobre la instantánea congelada `C:\dev\sqp-snapshots\portero-nhl-20261121`.
+- Después, el commit `9de724f` («fix: corregir replay, cuotas y operación diaria») cambió el motor `walk_forward_backtest` en tres puntos que rompen la paridad oráculo (`assert_parity`, paridad 2 de la sección 6):
+  1. `row_starters_at` (`src/sqp/backtesting/availability.py`) descarta la cadena vacía. El instrumento usa la cadena vacía como centinela de «desconocido declarado» (Enmienda 5(1)), así que esas filas llegaban como `None` y el adaptador usaba el proxy (f ≠ 1) en lugar de f = 1.
+  2. El motor pasa `neutral` de la fila a la estimación (Elo sin ventaja de campo y sin `home_scoring_bonus`), mientras la base congelada del instrumento en `04f3015` estima sin él.
+  3. El mismo commit pasa `retrospective_starters=arm == "M1"`. Con `False`, el motor solo usa la identidad de la fila si trae `*_available_at` anterior al corte. Así M2 y la base perdían el centinela de E5(1). En `04f3015` el motor leía la fila directamente en todos los brazos, así que `True` en todos restituye esa semántica.
+- En los dos casos el script aborta de forma segura («PARIDAD ROTA ... no se mide nada»): no se habría medido nada, pero el modo completo no podía ejecutarse.
+
+### (b) El parche: solo el oráculo de paridad
+
+- `_oracle_rows`: el oráculo trabaja sobre copias de las filas con un centinela sin apariciones que da f = 1 exacto, y **aborta** si M2 o la base traen una identidad real.
+- `retrospective_starters=True` en todos los brazos.
+- Parámetro nuevo del motor `neutral_in_estimate`: `True` por defecto (producción no cambia); el script pasa `False`, lo que restituye la semántica de `04f3015` para la paridad.
+- Revisión de Fable **antes** del commit: APROBADO CON CAMBIOS.
+
+### (c) Regla aplicada
+
+Es un defecto de código demostrable sin mirar el resultado («paridad rota»), una de las causas de la regla E10. No se ha visto ningún resultado. No se re-ejecuta ningún modo completo (no se ha ejecutado nunca): solo se repiten `--parity-only` y `--pre`, por la Enmienda 2(d).
+
+### (d) Consecuencia procedimental
+
+- `pre1.json` queda **inválido** para el modo completo: su HEAD (`04f3015`) ya no es el del código que se ejecutará.
+- Hay que repetir `--parity-only` y `--pre` sobre el **nuevo HEAD** (el del commit que incluya este parche y esta enmienda), con el árbol limpio, y registrar el HEAD y los hashes.
+- Solo después se ejecuta el modo completo, con `--pre-json` apuntando al nuevo `--pre` y sin nada en medio (Enmienda 2(d) y Enmienda 3(f)).

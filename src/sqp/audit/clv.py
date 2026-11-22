@@ -61,7 +61,8 @@ def _point(market: str, line) -> float | None:
 def compute_clv(bets_dir: Path, root: Path,
                 max_age_min: float | None = CLOSE_MAX_AGE_MIN
                 ) -> tuple[pd.DataFrame, int]:
-    """CLV por apuesta para cada apuesta liquidada (win/loss) emparejable a un
+    """CLV por apuesta para cada apuesta liquidada (win/loss, sin las filas
+    ``superseded``) emparejable a un
     precio de cierre capturado a lo sumo ``max_age_min`` minutos antes del
     comienzo (sin captura fresca la apuesta cuenta como sin_cierre). Devuelve
     (filas, n_sin_cierre); las filas traen league, market, selection, result,
@@ -70,6 +71,13 @@ def compute_clv(bets_dir: Path, root: Path,
     if settled.empty:
         return pd.DataFrame(), 0
     settled = settled[settled["result"].isin(["win", "loss"])].copy()
+    if "flags" in settled.columns:
+        # Una generacion `superseded` (stake 0) es la MISMA apuesta regenerada
+        # en otro run, no otra: contarla inflaba `n` del CLV y del gate
+        # (audit-2026-11-22, AUD-011). Mismo token que `runner.SUPERSEDED_FLAG`.
+        superseded = settled["flags"].fillna("").astype(str).map(
+            lambda f: "superseded" in [t.strip() for t in f.split(";")])
+        settled = settled[~superseded]
 
     cons_cache: dict[str, dict] = {}
     capturas: dict[str, dict[str, pd.Timestamp]] = {}

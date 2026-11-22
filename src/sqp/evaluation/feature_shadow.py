@@ -327,8 +327,11 @@ def capture_store(root: Path, experiment: Path) -> dict:
             d = pd.read_csv(path, dtype={"event_id": str})
             if d.empty:
                 continue
-            times = pd.to_datetime(d.commence_time, utc=True, errors="raise")
-            obtained = pd.to_datetime(d.captured_at, utc=True, errors="raise")
+            # ISO8601: los ficheros de nov-2026 mezclan sellos con y sin
+            # microsegundos (audit-2026-11-22, AUD-007); `errors="raise"` se
+            # mantiene para que un sello realmente invalido siga fallando.
+            times = pd.to_datetime(d.commence_time, utc=True, errors="raise", format="ISO8601")
+            obtained = pd.to_datetime(d.captured_at, utc=True, errors="raise", format="ISO8601")
             d = d.loc[(times > now) & (obtained <= now)].copy()
             if d.empty:
                 continue

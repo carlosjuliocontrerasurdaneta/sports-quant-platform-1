@@ -54,6 +54,20 @@ def test_metrics_grading_window_and_values():
     assert r["roi_flat"] == pytest.approx(0.5)
 
 
+def test_roi_flat_uses_the_settle_price_the_ledger_pays():
+    """audit-2026-11-22 AUD-010: con line shopping el ledger cobra a
+    `settle_price`; el ROI que decide la pausa usaba `price_decimal`."""
+    df = pd.concat([_settled(1, result="win", price=2.0),
+                    _settled(1, result="loss", price=2.0)], ignore_index=True)
+    df["settle_price"] = [2.2, float("nan")]
+    r = degradation_metrics(df, window_days=60, today=TODAY).iloc[0]
+    assert r["roi_flat"] == pytest.approx((1.2 - 1.0) / 2)
+    # settle_price invalido (<= 1, inf) cae a price_decimal, como `_settle_px`.
+    df["settle_price"] = [1.0, float("inf")]
+    r = degradation_metrics(df, window_days=60, today=TODAY).iloc[0]
+    assert r["roi_flat"] == pytest.approx(0.0)
+
+
 def test_metrics_empty_and_missing_columns():
     assert degradation_metrics(pd.DataFrame(), today=TODAY).empty
     no_implied = _settled(4).drop(columns=["implied_probability_novig"])

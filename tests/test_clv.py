@@ -279,3 +279,17 @@ def test_aud009_close_captured_after_entry_still_counts(tmp_path):
     _write_settled(tmp_path, [_settled_row(generated_at="2026-07-01T15:00:00Z")])
     df, unmatched = compute_clv(tmp_path / "data" / "bets", tmp_path)
     assert unmatched == 0 and len(df) == 1
+
+
+
+def test_compute_clv_excludes_superseded_generations(tmp_path):
+    """audit-2026-11-22 AUD-011: la misma apuesta regenerada en otro run queda
+    como fila `superseded` (stake 0) y no es otra apuesta para el CLV."""
+    _write_odds(tmp_path, [_odds_row()])
+    _write_settled(tmp_path, [
+        _settled_row(generated_at="2026-07-01T10:00:00Z", flags="superseded"),
+        _settled_row(generated_at="2026-07-01T13:00:00Z", flags=""),
+    ])
+    df, unmatched = compute_clv(tmp_path / "data" / "bets", tmp_path)
+    assert unmatched == 0 and len(df) == 1
+    assert df.iloc[0]["generated_at"] == "2026-07-01T13:00:00Z"

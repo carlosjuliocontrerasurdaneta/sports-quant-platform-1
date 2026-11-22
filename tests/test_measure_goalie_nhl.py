@@ -857,6 +857,32 @@ def test_exhibition_vs_non_nhl_club_gets_factor_one_and_keeps_engine_parity(smal
         mod.assert_parity(rows2, rows1, params, rparams, fr, beta, k, label="test")
 
 
+def test_parity_holds_with_neutral_rows(small_mod, monkeypatch):
+    """audit-2026-11-22 AUD-003: desde 9de724f el motor pasa `neutral` al
+    Event de la estimacion (Elo sin ventaja y sin home_scoring_bonus) y la base
+    del instrumento congelada en 04f3015 no. La paridad usa
+    `neutral_in_estimate=False`; el Elo sigue actualizando con `neutral`."""
+    mod = small_mod
+    _folds_all(mod, monkeypatch)
+    results, app = make_world(seasons=(2014,), days=12)
+    results[30]["neutral"] = True                 # tras el warmup de 5
+    rows2, rows1, _, fr, params, rparams = _frame(mod, (results, app))
+    mod.assert_parity(rows2, rows1, params, rparams, fr, 1.3, 1500.0, label="test",
+                      base_only=True)
+    mod.assert_parity(rows2, rows1, params, rparams, fr, 1.3, 1500.0, label="test")
+
+
+def test_oracle_rejects_real_identity_outside_m1(small_mod):
+    mod = small_mod
+    rows = [{"home_goalie_announced": "8471679", "away_goalie_announced": ""}]
+    with pytest.raises(SystemExit):
+        mod._oracle_rows(rows, "M2")
+    out = mod._oracle_rows(rows, "M1")
+    assert out[0]["home_goalie_announced"] == "8471679"
+    assert out[0]["away_goalie_announced"] == mod.ORACLE_UNKNOWN_GOALIE
+    assert rows[0]["away_goalie_announced"] == ""
+
+
 def test_sin_pretemporada_report_uses_game_type_and_counts_missing(mod):
     t = pd.DataFrame({"date": ["2015-10-01", "2015-10-05", "2015-09-20", "2015-10-07"],
                       "game_type": ["1", "2", "3", None],

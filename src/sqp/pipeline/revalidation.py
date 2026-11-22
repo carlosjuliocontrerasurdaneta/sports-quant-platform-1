@@ -328,7 +328,16 @@ def revalidate_candidates(predictions_dir: Path, root: Path, *,
                     if "bookmaker" in snap:
                         book_rows = snap[snap["bookmaker"].map(_book_key) == _book_key(book)]
                         quote = snapshot_consensus_price(book_rows, market, selection, point)
-                    if quote is None or not is_usable_price(quote):
+                    missing_quote = quote is None or not is_usable_price(quote)
+                    # Sin precio de la casa de ejecucion solo se conoce el
+                    # consenso. Si YA con el consenso el edge cae bajo el minimo,
+                    # con min(consenso, ejecucion) tambien caeria: se revoca por
+                    # el camino normal (audit-2026-11-22, AUD-004). Saltarse la
+                    # evaluacion dejaba vivo un pick sin edge justo cuando la
+                    # casa de ejecucion no cotizaba.
+                    if missing_quote and p * consensus - 1.0 < min_edge:
+                        quote = None
+                    elif missing_quote:
                         summary["skipped_no_price"] += 1
                         df.loc[df.index[idx], ["reval_action", "reval_price", "reval_edge",
                                                "reval_consensus_price", "reval_execution_price",
@@ -338,8 +347,9 @@ def revalidate_candidates(predictions_dir: Path, root: Path, *,
                         ]
                         changed = True
                         continue
-                    execution = quote
-                    price = min(consensus, execution)
+                    if quote is not None:
+                        execution = quote
+                        price = min(consensus, execution)
                 reval_edge = p * price - 1.0
                 summary["evaluated"] += 1
                 stamp = now.isoformat()
@@ -361,7 +371,8 @@ def revalidate_candidates(predictions_dir: Path, root: Path, *,
                         "reval_consensus_price": consensus,
                         "reval_execution_price": execution,
                         "execution_book": book,
-                        "reason": "edge_below_min",
+                        "reason": ("edge_below_min" if math.isfinite(execution)
+                                   else "edge_below_min_no_execution"),
                     })
                     log.info("[%s] revoked %s %s %s: edge %.4f < %.4f at close %.3f",
                              league, r.event_id, r.market, r.selection,

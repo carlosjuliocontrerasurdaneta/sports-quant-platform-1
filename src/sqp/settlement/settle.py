@@ -44,7 +44,18 @@ def _grade(row: pd.Series, hs: int, as_: int, home: str,
     if m in ("h2h", "spreads") and not sel_is_home and not (three_way and sel == "Draw"):
         away = row.get("away")
         if away is not None and str(away) != "" and normalize_key(sel) != normalize_key(away):
-            return "void"
+            # Orientacion invertida entre feeds (sede neutral, audit-2026-11-22
+            # AUD-005): el local de /scores es el VISITANTE de cuotas y la
+            # seleccion es el local de cuotas, o sea el visitante de scores.
+            # `sel_is_home=False` ya lo gradua bien; anularlo descartaba de
+            # forma definitiva el lado local de esos partidos. Sigue siendo
+            # void si la seleccion no es ninguno de los dos equipos.
+            odds_home = row.get("home")
+            inverted = (odds_home is not None and str(odds_home) != ""
+                        and normalize_key(sel) == normalize_key(odds_home)
+                        and normalize_key(home) == normalize_key(away))
+            if not inverted:
+                return "void"
     if m == "h2h":
         if margin == 0:
             if sel == "Draw": return "win"

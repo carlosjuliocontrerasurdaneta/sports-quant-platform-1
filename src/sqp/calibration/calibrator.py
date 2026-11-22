@@ -356,11 +356,17 @@ def _staging_meta_path(key: str):
     return _staging_dir() / f"{key}_n_val.json"
 
 
-def _write_staging_meta(key: str, *, n_val: int, n_val_events: int) -> None:
+def _write_staging_meta(key: str, *, n_val: int, n_val_events: int,
+                        model_fingerprint: dict | None = None) -> None:
+    """``model_fingerprint`` (AUD-009): huella del modelo de la liga con la que
+    se ENTRENO y valido el candidato; la promocion la copia al registro de
+    huellas live. Clave opcional: los lectores existentes usan ``.get``."""
     path = _staging_meta_path(key)
     path.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write_json({"n_val": n_val, "n_val_events": n_val_events}, path,
-                      indent=None, sort_keys=False)
+    meta: dict = {"n_val": n_val, "n_val_events": n_val_events}
+    if model_fingerprint is not None:
+        meta["model_fingerprint"] = model_fingerprint
+    atomic_write_json(meta, path, indent=None, sort_keys=False)
 
 
 def _load_staging_meta(key: str) -> dict | None:
@@ -440,6 +446,11 @@ def _set_best_method(key: str, method: str | None, *, staging: bool = False) -> 
         else:
             reg[key] = method
         _write_method_registry(reg, path)
+    if not staging:
+        # AUD-009: TODA escritura live invalida la huella previa de la clave
+        # (el mapa ya no es el que se valido con ella). Solo la promocion la
+        # vuelve a establecer, justo despues de esta llamada.
+        _forget_model_fingerprint(key)
 
 
 def _read_registry_strict(path: Path) -> dict:
@@ -463,6 +474,213 @@ def _write_method_registry(reg: dict, path: Path) -> None:
     # pipeline pasa a servir probabilidades SIN CALIBRAR, en silencio y en la
     # direccion que no es segura.
     atomic_write_json(reg, path)
+
+
+# --------------------------------------------------------------------------
+# Huella del modelo (AUD-009, ronda audit-2026-11-22)
+#
+# Un calibrador corrige el mapa p_modelo -> frecuencia observada de UN modelo
+# concreto. Si despues cambian los parametros de ese modelo (p. ej. MLB:
+# `pitcher_bound` 0 -> 0,05 el 2026-09-26, `park_bound` 0,10 -> 0,0 el
+# 2026-11-19) el mapa sigue aplicandose sin revalidacion OOS, y nadie lo ve.
+#
+# Politica:
+#  * Se huella el dict de parametros EFECTIVOS que recibe el adaptador de la
+#    liga en el run diario: `get_adapter(liga, familia, league_params).params`
+#    con `league_params` de `_league_meta` (configs/leagues/ratings.yaml y
+#    soccer.yaml) sobre FAMILY_PARAMS + LEAGUE_OVERRIDES. Es la MISMA ruta que
+#    `run_league`, asi que se huella la configuracion canonica, no los defaults
+#    de la firma de ninguna funcion. Numeros normalizados a float (15 == 15.0).
+#  * Se guarda en un fichero APARTE (`calibration_model_fingerprints.json`): el
+#    registro `calibration_methods.json` sigue siendo {clave: metodo}, que es lo
+#    que leen health.py, html_report, daily.py y promote_calibration.py.
+#    promotion_log.csv no cambia de columnas.
+#  * La huella se captura al ENTRENAR el candidato (metadatos de staging) y la
+#    promocion la copia; sin ella en staging, se usa la del momento de promover.
+#    Cualquier otra escritura live de la clave borra su huella.
+#  * En el servicio: huella registrada y distinta de la actual (o no
+#    calculable, o fichero de huellas ilegible) -> estado `model_mismatch`:
+#    no-op, se sirve en crudo, con WARNING. Es reversible: la entrada del
+#    registro NO se borra, y si la configuracion vuelve a coincidir el mapa
+#    vuelve a aplicarse.
+#  * Claves SIN huella (LEGACY: todo lo promovido antes de AUD-009, hoy
+#    mlb_spreads y wnba_spreads) -> se siguen APLICANDO como hasta ahora, con
+#    un WARNING por clave y proceso. Retirarlas cambiaria probabilidades
+#    servidas y es una decision del operador, no de este modulo.
+#
+# Limites conocidos: no detecta cambios de CODIGO del adaptador, ni de un
+# default interno (`params.get(k, default)`) cuando la clave no esta en el
+# dict, ni de la capa de ajustes de `settings.risk` (coeficientes globales en
+# configs/default.yaml, todos 0 a la fecha).
+# --------------------------------------------------------------------------
+FINGERPRINT_VERSION = 1
+_fingerprint_warned: set[tuple[str, str]] = set()
+
+
+def _fingerprint_registry_path() -> Path:
+    return MODELS_DIR / "calibration_model_fingerprints.json"
+
+
+def _normalize_param(value):
+    if isinstance(value, bool) or value is None or isinstance(value, str):
+        return value
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        return float(value)
+    if isinstance(value, dict):
+        return {str(k): _normalize_param(v) for k, v in sorted(value.items())}
+    if isinstance(value, (list, tuple)):
+        return [_normalize_param(v) for v in value]
+    return repr(value)
+
+
+def _league_of_key(key: str) -> tuple[str, dict]:
+    """(liga, meta) de una clave ``"<liga>_<mercado>"``. Se prueba cada corte
+    desde la derecha (``mlb_team_totals`` -> ``mlb``) con la misma
+    ``_league_meta`` del run diario. KeyError si ninguna liga lo acepta."""
+    from sqp.pipeline.daily import _league_meta   # perezoso: evita el ciclo
+    parts = str(key).split("_")
+    for i in range(len(parts) - 1, 0, -1):
+        league = "_".join(parts[:i])
+        try:
+            return league, _league_meta(league)
+        except KeyError:
+            continue
+    raise KeyError(f"{key!r}: ninguna liga registrada corresponde a la clave")
+
+
+@lru_cache(maxsize=256)
+def _current_model_fingerprint(key: str) -> tuple[dict | None, str | None]:
+    """(huella, None) con la configuracion actual, o (None, motivo) si no se
+    puede calcular. Cacheada por proceso: el run aplica el calibrador por
+    candidato y la configuracion no cambia dentro de un run."""
+    try:
+        from sqp.sports.registry import get_adapter
+        league, meta = _league_of_key(key)
+        adapter = get_adapter(league, meta["family"], meta.get("league_params"))
+        payload = {"version": FINGERPRINT_VERSION, "league": league,
+                   "family": str(meta["family"]),
+                   "adapter_params": _normalize_param(dict(adapter.params))}
+    except Exception as exc:  # clave sin liga, config ilegible, etc.
+        return None, f"huella no calculable ({type(exc).__name__}: {exc})"
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True,
+                                       separators=(",", ":")).encode("utf-8"))
+    return {"sha256": digest.hexdigest(), **payload}, None
+
+
+def _read_fingerprint_registry() -> dict | None:
+    """{} si el fichero no existe; None si existe y no se puede leer (quien lo
+    consume para SERVIR debe tratarlo como no verificable)."""
+    path = _fingerprint_registry_path()
+    if not path.exists():
+        return {}
+    try:
+        data = read_json_retrying(path)
+    except Exception as exc:
+        log.error("%s ilegible (%s): ninguna huella de calibrador es "
+                  "verificable.", path.name, exc)
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _update_fingerprint_registry(key: str, record: dict | None) -> None:
+    """Escribe (o borra con ``None``) la huella de ``key``. Si el fichero
+    existe pero es ilegible NO se reescribe: perder las huellas de otras
+    claves las convertiria en legacy (se aplicarian); ilegible, el servicio
+    las trata como no verificables (crudo)."""
+    path = _fingerprint_registry_path()
+    if record is None and not path.exists():
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with locked(path):
+        try:
+            reg = _read_registry_strict(path)
+        except Exception as exc:
+            log.error("[%s] %s ilegible (%s): no se actualiza la huella; el "
+                      "calibrador se servira en crudo hasta repararlo.",
+                      key, path.name, exc)
+            return
+        if record is None:
+            if key not in reg:
+                return
+            reg.pop(key)
+        else:
+            reg[key] = record
+        atomic_write_json(reg, path)
+
+
+def _forget_model_fingerprint(key: str) -> None:
+    _update_fingerprint_registry(key, None)
+
+
+def _record_model_fingerprint(key: str, method: str,
+                              staged: dict | None) -> None:
+    """Huella live de ``key`` tras promoverla: la de staging (con la que se
+    valido) si existe; si no, la actual. Sin huella calculable no se registra
+    nada y la clave queda como legacy."""
+    now = pd.Timestamp.now(tz="UTC").isoformat()
+    current, motivo = _current_model_fingerprint(key)
+    fp, source = (staged, "staging") if staged else (current, "promotion")
+    if fp is None:
+        log.warning("[%s] promovido SIN huella del modelo (%s): queda como "
+                    "legacy y se aplicara sin verificar el modelo.", key, motivo)
+        return
+    if current is not None and fp.get("sha256") != current["sha256"]:
+        log.warning("[%s] el candidato se entreno con otra configuracion del "
+                    "modelo (%s): se promueve pero se servira en crudo "
+                    "(model_mismatch) hasta reentrenarlo.", key,
+                    _fingerprint_diff(fp, current))
+    _update_fingerprint_registry(key, {"fingerprint": fp, "method": method,
+                                       "source": source, "recorded_at": now})
+
+
+def _fingerprint_diff(old: dict, new: dict) -> str:
+    a = old.get("adapter_params") or {}
+    b = new.get("adapter_params") or {}
+    diffs = [f"{k}: {a.get(k)!r} -> {b.get(k)!r}"
+             for k in sorted(set(a) | set(b)) if a.get(k) != b.get(k)]
+    for k in ("league", "family", "version"):
+        if old.get(k) != new.get(k):
+            diffs.append(f"{k}: {old.get(k)!r} -> {new.get(k)!r}")
+    return "; ".join(diffs) or "huella distinta"
+
+
+def model_fingerprint_status(key: str) -> tuple[str, str | None]:
+    """(estado, detalle) de la huella live de ``key``: ``match`` | ``legacy``
+    (sin huella registrada: comportamiento previo a AUD-009) | ``mismatch``
+    (huella distinta de la configuracion actual, no calculable o registro de
+    huellas ilegible)."""
+    reg = _read_fingerprint_registry()
+    if reg is None:
+        return "mismatch", "registro de huellas ilegible"
+    rec = reg.get(key)
+    if rec is None:
+        return "legacy", None
+    stored = rec.get("fingerprint") if isinstance(rec, dict) else None
+    if not isinstance(stored, dict) or not stored.get("sha256"):
+        return "mismatch", "huella registrada con formato invalido"
+    current, motivo = _current_model_fingerprint(key)
+    if current is None:
+        return "mismatch", motivo
+    if stored["sha256"] != current["sha256"]:
+        return "mismatch", _fingerprint_diff(stored, current)
+    return "match", None
+
+
+def _warn_fingerprint_once(key: str, status: str, detail: str | None) -> None:
+    if (key, status) in _fingerprint_warned:
+        return
+    _fingerprint_warned.add((key, status))
+    if status == "legacy":
+        log.warning("[%s] calibrador live SIN huella del modelo (promovido "
+                    "antes de AUD-009): se sigue aplicando, pero no se puede "
+                    "verificar que el modelo no haya cambiado desde su "
+                    "validacion. Revalidar OOS o retirarlo es decision del "
+                    "operador.", key)
+    elif status == "mismatch":
+        log.warning("[%s] calibrador live DESLIGADO del modelo (%s): se ignora "
+                    "y se sirve en crudo (model_mismatch) hasta reentrenar y "
+                    "promover uno validado con la configuracion actual.",
+                    key, detail)
 
 
 class BetaCalibrator:
@@ -684,7 +902,14 @@ def train_calibration(df: pd.DataFrame, prob_col: str = "probability",
     best_method = min(ranked, key=lambda r: r[1])[0] if ranked else None
     _set_best_method(sport, best_method, staging=staging)
     if staging:
-        _write_staging_meta(sport, n_val=len(val_df), n_val_events=n_val_groups)
+        _write_staging_meta(sport, n_val=len(val_df), n_val_events=n_val_groups,
+                            model_fingerprint=_current_model_fingerprint(sport)[0])
+    elif best_method is not None:
+        # Escritura live directa (staging=False): `_set_best_method` acaba de
+        # borrar la huella; sin registrarla la clave quedaria como legacy y se
+        # aplicaria sin verificar el modelo (revision Fable 2026-11-22, AUD-009).
+        _current_model_fingerprint.cache_clear()
+        _record_model_fingerprint(sport, best_method, None)
 
     log.info("[%s] Calibration fit on %d rows, val %d | raw ECE %.4f -> iso %.4f "
              "(%s) / beta %.4f (%s)", sport, len(train_df), len(val_df), raw_val_ece,
@@ -868,9 +1093,18 @@ def revalidate_live_registry() -> list[str]:
     un mercado se sirve en crudo, que es el comportamiento por defecto.
     """
     degradados: list[str] = []
+    _current_model_fingerprint.cache_clear()
     for key, method in list(_load_method_registry(staging=False).items()):
         motivo = calibrator_defect(key, str(method), staging=False)
         if motivo is None:
+            # AUD-009: solo se INFORMA. El servicio ya ignora un mapa desligado
+            # del modelo (`model_mismatch`) sin borrar su entrada -- reversible
+            # si la configuracion vuelve --, y una clave legacy no se retira
+            # aqui: hacerlo cambiaria probabilidades servidas sin evidencia.
+            estado, detalle = model_fingerprint_status(key)
+            if estado != "match":
+                _fingerprint_warned.discard((key, estado))
+                _warn_fingerprint_once(key, estado, detalle)
             continue
         log.warning("[%s] calibrador live DEGRADADO a no-op: %s. El mercado "
                     "pasa a servirse en crudo hasta que se promueva uno "
@@ -919,6 +1153,7 @@ def promote_calibrators(keys: list[str] | None = None,
     `promote_calibration.py --yes` lo habria instalado en produccion.
     """
     staged = _load_method_registry(staging=True)
+    _current_model_fingerprint.cache_clear()   # config leida en ESTA promocion
     targets = staged if keys is None else {k: v for k, v in staged.items() if k in keys}
     promoted: list[str] = []
     for key, method in targets.items():
@@ -955,6 +1190,14 @@ def promote_calibrators(keys: list[str] | None = None,
                 if sidecar.exists():
                     shutil.copyfile(str(sidecar), str(_hash_sidecar(dst)))
         _set_best_method(key, method)
+        # AUD-009: liga el mapa a la configuracion del modelo con la que se
+        # valido. No es una puerta nueva: no impide promover, solo hace que
+        # el servicio lo ignore si el modelo cambia despues.
+        _staged_meta = _load_staging_meta(key)
+        _staged_fp = (_staged_meta.get("model_fingerprint")
+                      if isinstance(_staged_meta, dict) else None)
+        _record_model_fingerprint(key, str(method),
+                                  _staged_fp if isinstance(_staged_fp, dict) else None)
         promoted.append(key)
     demoted_sync: list[tuple[str, str]] = []
     if keys is None:  # full sync: demote live markets no longer recommended
@@ -1149,12 +1392,16 @@ def apply_calibration(probs: np.ndarray, sport: str = "mlb",
                     "Revisar con scripts/promote_calibration.py.", sport, defecto)
         return probs
     if state != "applied" or cal is None:
-        return probs        # sin registro / metodo / fichero / digest -> crudo
+        # sin registro / metodo / fichero / digest / huella del modelo -> crudo
+        # (el WARNING de `model_mismatch` lo emite la resolucion, una vez).
+        return probs
     return np.clip(cal.predict(probs), 0.01, 0.99)
 
 
+# `model_mismatch` (AUD-009): el mapa se valido con otra configuracion del
+# modelo de la liga (o no se puede verificar) y se sirve en crudo.
 LIVE_CALIBRATION_STATES = ("applied", "none", "unknown_method", "missing_file",
-                           "bad_digest", "structural_defect")
+                           "bad_digest", "structural_defect", "model_mismatch")
 
 
 def _resolve_live_calibrator(sport: str, method: str):
@@ -1178,13 +1425,18 @@ def _resolve_live_calibrator(sport: str, method: str):
     defecto = structural_defect(cal.predict)
     if defecto is not None:
         return "structural_defect", None, defecto
-    return "applied", cal, None
+    estado, detalle = model_fingerprint_status(sport)
+    if estado != "match":
+        _warn_fingerprint_once(sport, estado, detalle)
+    if estado == "mismatch":
+        return "model_mismatch", None, detalle
+    return "applied", cal, None             # match, o legacy (sin huella)
 
 
 def live_calibration_state(key: str, method: str) -> str:
     """Estado del calibrador live de ``key`` (``"<liga>_<mercado>"``) bajo
     ``method``: ``applied | none | unknown_method | missing_file | bad_digest |
-    structural_defect``. ``none`` = el registro no tiene entrada (ausencia
+    structural_defect | model_mismatch``. ``none`` = el registro no tiene entrada (ausencia
     legitima con ``method='auto'``); el resto son un calibrador que el registro
     o la configuracion afirman y que NO se aplica."""
     return _resolve_live_calibrator(key, method)[0]

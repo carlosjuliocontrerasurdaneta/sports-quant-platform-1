@@ -29,6 +29,7 @@ from sqp.logging_config import get_logger
 from sqp.pipeline.daily import _league_meta
 from sqp.storage.results_store import ResultsStore
 from sqp.storage.starters import StartersStore
+from sqp.storage.atomic import atomic_write_csv
 
 log = get_logger("sqp.patterns")
 
@@ -85,7 +86,9 @@ def build_pick_history(settings: Settings | None = None, *, write: bool = True,
     if write:
         out = Path(path) if path else PICK_HISTORY_PATH
         out.parent.mkdir(parents=True, exist_ok=True)
-        hist.to_csv(out, index=False)
+        # Atomico (audit-2026-11-22, AUD-012): un corte a mitad dejaba el
+        # historial consolidado truncado para el siguiente lector.
+        atomic_write_csv(hist, out)
         log.info("Historial consolidado de picks -> %s (%d picks)", out, len(hist))
     return hist
 

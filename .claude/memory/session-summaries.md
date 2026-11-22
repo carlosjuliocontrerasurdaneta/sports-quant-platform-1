@@ -1153,3 +1153,12 @@ Auditoría integral (segunda pasada, no ciega) sobre el árbol sucio. 4 hallazgo
 - /doctor: plugins, MCP `graphify` y skills sin uso desactivados en ajustes de usuario/locales; las ediciones de `CLAUDE.md`, `.claude/CLAUDE.md`, la skill `cierre-de-jornada` y el borrado de `coding-standards.md` siguen SIN COMMITEAR (el clasificador denegó el commit dos veces).
 - Detalle en `Obsidian/Bitácora/2026-11-19.md`; pendientes en `Obsidian/Tareas.md`.
 - Pendiente del operador: `promote_calibration.py --demote mlb_totals` (y luego addendum de una línea), reintento de 19 fechas del portero NHL, commit de lo de /doctor, `git stash drop`. Pendiente técnico: anclar la regex `T1 fijado` de `measure_tier_a_gap.py:1361` antes de julio de 2027 (revisión Fable).
+
+
+## 2026-11-22 — Auditoría integral `audit-2026-11-22` y remediación autorizada (sobre main)
+
+- Diagnóstico: 13 confirmados (0 CRITICAL/HIGH, 4 MEDIUM), CI rojo desde 2026-11-19; el commit local sin pushear `9de724f` arreglaba `park_bound` pero rompía el BAT (`if errorlevel 1`) y la paridad del portero NHL.
+- Remediación (Fable revisó antes del commit): AUD-002/003/004/005/007/008/009/010/012/013 corregidos; AUD-011 parcial (solo `superseded`); AUD-006 falso positivo. Enmienda 6 del pre-registro del portero NHL: `pre1.json` invalidado, hay que repetir `--parity-only` y `--pre`.
+- Suite rápida 2.962 passed; ruff y mypy limpios. Detalle en `Obsidian/Bitácora/2026-11-22.md` y `audit/latest/`.
+- Pendiente del operador: re-liquidar 28 filas NCAAB (AUD-005); decidir `mlb_spreads`/`wnba_spreads` sin huella (AUD-009); decisión CLV push/contratos antes de reactivar el gate (AUD-011).
+- Lección: `sed -i` en Git Bash convierte BAT CRLF a LF; editar BAT con Python a nivel de bytes.

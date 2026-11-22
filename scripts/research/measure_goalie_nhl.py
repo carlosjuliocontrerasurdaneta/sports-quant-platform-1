@@ -1017,6 +1017,39 @@ def outcomes_of(fr: pd.DataFrame) -> dict[str, np.ndarray]:
 
 
 # ================================================================== paridad ==
+# Identidad que ningun portero real puede tener (los id de la NHL son numericos).
+# Solo vive en las copias que recibe el oraculo de paridad: ver `_oracle_rows`.
+ORACLE_UNKNOWN_GOALIE = "__desconocido_declarado_enmienda5__"
+
+
+def _oracle_rows(rows: list[dict], arm: str | None) -> list[dict]:
+    """Copias de las filas para `walk_forward_backtest` con la semantica de
+    identidad con la que se congelo el instrumento (04f3015).
+
+    Desde 9de724f `availability.row_starters_at` descarta los titulares vacios,
+    asi que la cadena vacia de la Enmienda 5(1) («desconocido declarado», f = 1)
+    llegaba al `Event` como `None` y el adaptador usaba el proxy. Aqui se traduce
+    a una identidad sin apariciones: q = 0 -> f = 1.0 exacto en
+    `GoalieRatings.factor`. Las filas del instrumento, la reconstruccion y lo que
+    se mide no cambian. El `neutral` del `Event`, tambien nuevo en 9de724f, lo
+    neutraliza la llamada de paridad con `neutral_in_estimate=False`
+    (Enmienda 6)."""
+    out: list[dict] = []
+    for r in rows:
+        e = dict(r)
+        for side in ("home", "away"):
+            key = f"{side}_goalie_announced"
+            if key not in e:
+                continue
+            if e[key] == "":
+                e[key] = ORACLE_UNKNOWN_GOALIE
+            elif arm != "M1":
+                # M2 y la base no llevan identidad real: solo el centinela de E5(1).
+                raise SystemExit(f"PARIDAD: fila con {key} real fuera de M1.")
+        out.append(e)
+    return out
+
+
 def assert_parity(rows_m2: list[dict], rows_m1: list[dict], params: dict, rparams: dict,
                   fr: pd.DataFrame, beta: float, k: float, atol: float = 1e-12,
                   label: str = "", base_only: bool = False,
@@ -1035,9 +1068,15 @@ def assert_parity(rows_m2: list[dict], rows_m1: list[dict], params: dict, rparam
         if "M2" in arms:
             runs.append(("T-M2", rows_m2, tp, "M2"))
     for name, rows, p, arm in runs:
-        ref = walk_forward_backtest(rows, LEAGUE, FAMILY, p, warmup=WARMUP,
+        # `retrospective_starters=True` en todos: la identidad de la fila es la
+        # que declara el pre-registro (M1: titular real, cota superior; M2 y
+        # base: ninguna salvo el centinela de E5(1)), como en el motor congelado.
+        ref = walk_forward_backtest(_oracle_rows(rows, arm), LEAGUE, FAMILY, p, warmup=WARMUP,
                                     spread_lines=SPREAD_LINES, total_lines=TOTAL_LINES,
-                                    retrospective_starters=arm == "M1")
+                                    retrospective_starters=True,
+                                    # La base del instrumento (04f3015) estima
+                                    # sin la marca neutral; el Elo si la usa.
+                                    neutral_in_estimate=False)
         lh, la = (base_lambdas(fr) if arm is None else treat_lambdas(fr, arm, k, beta))
         mine = market_probs(lh, la)
         outc = outcomes_of(fr)

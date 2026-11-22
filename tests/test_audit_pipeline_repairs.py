@@ -119,6 +119,9 @@ def test_repeated_quotes_do_not_give_one_book_extra_weight():
     (2.04, 1.70, "revoke", "2026-11-21T19:45:00+00:00"),
     (2.04, 2.00, "keep", "2026-11-21T19:45:00+00:00"),
     (None, 2.00, NO_EXECUTION_PRICE, "2026-11-21T19:45:00+00:00"),
+    # audit-2026-11-22 AUD-004: sin la casa de ejecucion, un consenso que ya
+    # deja el edge bajo el minimo revoca; no puede salvar el pick.
+    (None, 1.70, "revoke", "2026-11-21T19:45:00+00:00"),
 ])
 def test_revalidation_distinguishes_the_execution_book(execution, consensus, expected, stamp, tmp_path):
     now = datetime(2026, 11, 21, 20, tzinfo=timezone.utc)
@@ -144,7 +147,11 @@ def test_revalidation_distinguishes_the_execution_book(execution, consensus, exp
     row = pd.read_csv(path).iloc[0]
     assert row["reval_action"] == expected
     assert row["reval_consensus_price"] == pytest.approx(consensus)
-    if execution is None:
+    if execution is None and expected == "revoke":
+        assert result["revoked"] == 1 and result["skipped_no_price"] == 0
+        assert row["reval_price"] == pytest.approx(consensus)
+        assert pd.isna(row["reval_execution_price"])
+    elif execution is None:
         assert result["skipped_no_price"] == 1 and result["kept"] == 0
         assert pd.isna(row["reval_price"])
     else:

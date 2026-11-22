@@ -20,6 +20,8 @@
         "analisis exhaustivo",
         "revisión integral",
         "revision integral",
+        "auditoría integral",
+        "auditoria integral",
         "todo el repositorio",
         "full audit"
       ],
@@ -302,6 +304,9 @@
         "analisis de calibracion solamente",
         "revisión de calibración",
         "revision de calibracion",
+        "promover calibrador",
+        "promover el calibrador",
+        "staging de calibrador",
         "calibration-only"
       ],
       "skill": "review-calibration",

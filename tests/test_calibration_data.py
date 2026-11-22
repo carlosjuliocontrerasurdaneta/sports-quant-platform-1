@@ -464,3 +464,38 @@ class TestSeConservaLaObservacionMasReciente:
         assert visto["probs"] == [[0.8], [0.8]], (
             f"debe quedar SIEMPRE la de 0.8 (la mas reciente), llego como llego: "
             f"{visto['probs']}")
+
+
+def test_settled_row_trains_on_the_served_adjusted_probability(tmp_path):
+    """audit-2026-11-22 AUD-008: `BetCandidate` no persiste
+    `adjusted_probability`, asi que la fila liquidada (que gana el dedup)
+    entrenaba con `model_probability` aunque se sirviera otra cantidad. El
+    objetivo sale ahora de la fila servida del mismo run; el resultado sigue
+    siendo el del ledger."""
+    from sqp.calibration.data import load_calibration_training_history
+    base = {"league": "nba", "event_id": "e1", "market": "h2h", "selection": "A",
+            "line": None, "game_date": "2026-08-10",
+            "generated_at": "2026-08-10T15:00:00+00:00", "model_probability": 0.60}
+    _write_settled(tmp_path / "bets", "nba", [{**base, "result": "win"}])
+    cal = tmp_path / "cal"
+    cal.mkdir()
+    pd.DataFrame([{**base, "adjusted_probability": 0.66, "result": "loss",
+                   "data_label": "real"}]).to_csv(cal / "graded_nba.csv", index=False)
+    hist = load_calibration_training_history(bets_dir=tmp_path / "bets", cal_dir=cal)
+    assert len(hist) == 1
+    row = hist.iloc[0]
+    assert row["adjusted_probability"] == pytest.approx(0.66)
+    assert row["model_probability"] == pytest.approx(0.60)
+    assert row["result"] == "win"
+
+
+def test_settled_row_without_served_twin_keeps_its_own_target(tmp_path):
+    from sqp.calibration.data import load_calibration_training_history
+    _write_settled(tmp_path / "bets", "nba", [{
+        "league": "nba", "event_id": "e1", "market": "h2h", "selection": "A",
+        "game_date": "2026-08-10", "generated_at": "2026-08-10T15:00:00+00:00",
+        "model_probability": 0.60, "result": "win"}])
+    cal = tmp_path / "cal"
+    cal.mkdir()
+    hist = load_calibration_training_history(bets_dir=tmp_path / "bets", cal_dir=cal)
+    assert hist.iloc[0]["adjusted_probability"] == pytest.approx(0.60)

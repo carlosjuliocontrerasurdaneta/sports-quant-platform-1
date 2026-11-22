@@ -217,3 +217,26 @@ def test_baseball_training_and_capture_join_the_starters(tmp_path, monkeypatch):
     assert seen["starters"] == ["Ace"]
     assert (out / "training/starters_mlb.csv").exists()
     assert p["candidates"][0]["starters_sha256"] == shadow.digest(starters)
+
+
+def test_capture_store_accepts_mixed_second_and_microsecond_stamps(tmp_path, monkeypatch):
+    """audit-2026-11-22 AUD-007: desde 9de724f los ficheros mensuales mezclan
+    `...T10:00:00Z` y `...T10:00:00.123456+00:00`; el parseo estricto inferido
+    lanzaba ValueError y la captura entera fallaba."""
+    monkeypatch.setattr(shadow, "utc_now", lambda: pd.Timestamp("2025-03-01T12:00Z"))
+    monkeypatch.setattr(shadow, "load_protocol", lambda *a: {
+        "start": "2025-03-02T00:00Z", "end_exclusive": "2025-04-01T00:00Z",
+        "event_horizon_days": 7, "candidates": [{"league": "nba"}]})
+    monkeypatch.setattr(shadow, "captured_rows", lambda *a: [])
+    handed = []
+    monkeypatch.setattr(shadow, "capture", lambda root, exp, path: handed.append(pd.read_csv(path)) or {"n_predictions": 2})
+    odds = tmp_path / "data/odds"
+    odds.mkdir(parents=True)
+    pd.DataFrame([
+        {"event_id": "nba-1", "commence_time": "2025-03-03T00:00:00Z",
+         "captured_at": "2025-03-01T10:00:00+00:00", "home": "A", "away": "B"},
+        {"event_id": "nba-2", "commence_time": "2025-03-03T01:00:00Z",
+         "captured_at": "2025-03-01T10:30:00.123456+00:00", "home": "C", "away": "D"},
+    ]).to_csv(odds / "odds_nba_2025-03.csv", index=False)
+    assert shadow.capture_store(tmp_path, tmp_path)["n_predictions"] == 2
+    assert sorted(handed[0].game_id) == ["nba-1", "nba-2"]

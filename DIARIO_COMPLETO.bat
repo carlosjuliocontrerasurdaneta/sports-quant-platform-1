@@ -209,7 +209,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\wait_for_netwo
 if %ERRORLEVEL% neq 0 goto :error_red
 :net_ok
 call :verify_revision
-if errorlevel 1 goto :error_revision
+if %ERRORLEVEL% neq 0 goto :error_revision
 
 REM [0.5/3] HISTORICO FRESCO ANTES DE LIQUIDAR (2026-09-25, AUD-003/KI-059).
 REM La liquidacion solo gradua desde data\historical\ lo que ya este ahi, y un
@@ -235,7 +235,7 @@ if %ERRORLEVEL% neq 0 call :log "[AVISO] el refresco del historico de tenis fall
 
 call :log "[1/3] Liquidando picks del dia anterior..."
 call :verify_revision
-if errorlevel 1 goto :error_revision
+if %ERRORLEVEL% neq 0 goto :error_revision
 call "%~dp0SETTLE_ALL.bat"
 if %ERRORLEVEL% neq 0 goto :error_settle
 REM Porteros probables NHL (2026-09-26, pre-registro del portero NHL): captura
@@ -247,7 +247,7 @@ if %ERRORLEVEL% neq 0 call :log "[AVISO] la captura de porteros probables NHL fa
 
 call :log "[2/3] Ejecutando run diario multi-liga..."
 call :verify_revision
-if errorlevel 1 goto :error_revision
+if %ERRORLEVEL% neq 0 goto :error_revision
 call "%~dp0RUN_DIARIO_ALL.bat"
 if %ERRORLEVEL% neq 0 goto :error_run
 

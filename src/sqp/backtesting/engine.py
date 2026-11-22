@@ -50,7 +50,8 @@ def walk_forward_backtest(results: list[dict], league: str, family: str,
                           league_params: dict | None = None, warmup: int = 60,
                           spread_lines: tuple[float, ...] = (),
                           total_lines: tuple[float, ...] = (), *,
-                          retrospective_starters: bool = False) -> dict:
+                          retrospective_starters: bool = False,
+                          neutral_in_estimate: bool = True) -> dict:
     """Backtest temporal por bloques diarios. Sin `spread_lines`/`total_lines`
     solo se evalua moneyline; la interfaz de los consumidores se conserva.
 
@@ -63,6 +64,12 @@ def walk_forward_backtest(results: list[dict], league: str, family: str,
     al comienzo del partido (o al inicio del día si falta la hora).
     `retrospective_starters=True` reproduce experimentos de cota superior
     congelados, usando la identidad observada en la fila del resultado.
+
+    `neutral_in_estimate=False` construye la estimacion sin la marca de sede
+    neutral de la fila (como el motor anterior a 9de724f); las actualizaciones
+    Elo siguen usandola. Solo para instrumentos pre-registrados cuya base se
+    congelo sin ella (portero NHL, audit-2026-11-22 AUD-003); el valor por
+    defecto es el comportamiento de produccion.
     """
     adapter = get_adapter(league, family, league_params)
     probs, outcomes = [], []
@@ -115,7 +122,8 @@ def walk_forward_backtest(results: list[dict], league: str, family: str,
                        away_pitcher=starters.get("away_pitcher"),
                        home_goalie=starters.get("home_goalie"),
                        away_goalie=starters.get("away_goalie"),
-                       neutral=(family == "tennis" or r.get("neutral") is True))
+                       neutral=(family == "tennis"
+                                or (neutral_in_estimate and r.get("neutral") is True)))
             est = adapter.estimate(ev, None, None)
             ph = est.home_win_estimated_probability
             if est.draw_estimated_probability is not None:

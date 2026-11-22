@@ -83,7 +83,16 @@ def degradation_metrics(settled: pd.DataFrame, *,
     p_model = _num(df, "estimated_probability")
     p_market = _num(df, "implied_probability_novig")
     p_pure = _num(df, "model_probability")
+    # Mismo precio que cobra el ledger (`settle._settle_px`): `settle_price`
+    # finito y > 1, y si no `price_decimal`. Con line shopping activo el ROI de
+    # la pausa se medía a la mediana del consenso mientras el pnl se cobraba a
+    # la casa de ejecucion: dos ROI realizados distintos (audit-2026-11-22,
+    # AUD-010). Sin la columna (stream servido) no cambia nada.
     price = _num(df, "price_decimal")
+    if "settle_price" in df.columns:
+        sp = _num(df, "settle_price")
+        # `sp > 1.0` es False para NaN; el tope descarta +inf.
+        price = sp.where((sp > 1.0) & (sp < float("inf")), price)
     df = df.assign(_se_model=(p_model - y) ** 2, _se_market=(p_market - y) ** 2,
                    _se_pure=(p_pure - y) ** 2,
                    _pnl_flat=(price - 1.0).where(y > 0, -1.0))

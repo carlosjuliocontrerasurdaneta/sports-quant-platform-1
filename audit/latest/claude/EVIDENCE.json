@@ -1,72 +1,89 @@
 {
-  "round_id": "audit-2026-11-03",
+  "round_id": "audit-2026-11-22",
   "auditor": "claude",
-  "base_commit": "a5d186084e7bc5a42c055b420adcfa7a9a9b1ffe",
-  "working_tree_preexisting": [
-    "M src/sqp/backtesting/engine.py",
-    "M src/sqp/domain/models.py",
-    "M src/sqp/sports/adapters.py",
-    "?? src/sqp/models/goalies.py",
-    "?? scripts/research/measure_goalie_nhl.py",
-    "?? tests/test_measure_goalie_nhl.py"
-  ],
-  "specialists": [
-    {"area": "fugas temporales, features, calibracion", "agent": "leakage-detector", "model": "claude-fable-5-1", "candidates": ["LEAK-01", "LEAK-02"], "tests": "226 passed (9 ficheros), rc=0"},
-    {"area": "cuotas, devig, edge/EV, liquidacion, Kelly, gates", "agent": "odds-market-auditor", "model": "claude-fable-5-1", "candidates": ["ODDS-01", "ODDS-02", "ODDS-03", "ODDS-04", "ODDS-05", "ODDS-06"], "tests": "214 passed, rc=0"},
-    {"area": "backtesting, OOS, investigacion, pre-registros", "agent": "backtest-reviewer", "model": "claude-fable-5-1", "candidates": ["BT-01", "BT-02", "BT-03", "BT-04", "BT-05"], "tests": "151 passed, rc=0"},
-    {"area": "seguridad, secretos, dependencias", "agent": "security-reviewer", "model": "claude-sonnet-5-5", "candidates": ["SEC-01", "SEC-02", "SEC-03", "SEC-04"], "tests": null},
-    {"area": "arquitectura, datos, almacenamiento, proveedores", "agent": "general-purpose", "model": "claude-sonnet-5-5", "candidates": ["ARCH-01", "ARCH-02", "ARCH-03", "ARCH-04", "ARCH-05", "ARCH-06", "ARCH-07", "ARCH-08"], "tests": "65 passed, rc=0"},
-    {"area": "automatizacion, BAT, tareas, hooks, skills, agentes", "agent": "general-purpose", "model": "claude-sonnet-5-5", "candidates": ["OPS-01", "OPS-02", "OPS-03", "OPS-04", "OPS-05", "OPS-06"], "tests": "131 passed en 1157 s, rc=0"}
-  ],
-  "id_map": {
-    "CLAUDE-001": "ODDS-01", "CLAUDE-002": "OPS-01", "CLAUDE-003": "BT-02", "CLAUDE-004": "BT-01",
-    "CLAUDE-005": "ODDS-02", "CLAUDE-006": "ARCH-01", "CLAUDE-007": "OPS-02", "CLAUDE-008": "ARCH-02",
-    "CLAUDE-009": "BT-04", "CLAUDE-010": "ODDS-04", "CLAUDE-011": "ODDS-03", "CLAUDE-012": "LEAK-01",
-    "CLAUDE-013": "BT-03", "CLAUDE-014": "SEC-02+OPS-05", "CLAUDE-015": "ARCH-08", "CLAUDE-016": "ARCH-06",
-    "CLAUDE-017": "ARCH-03", "CLAUDE-018": "ARCH-05", "CLAUDE-019": "ARCH-07", "CLAUDE-020": "LEAK-02",
-    "CLAUDE-021": "BT-05", "CLAUDE-022": "SEC-01", "CLAUDE-023": "SEC-03", "CLAUDE-024": "SEC-04",
-    "CLAUDE-025": "OPS-04", "CLAUDE-026": "ODDS-06",
-    "CLAUDE-I01": "ODDS-05", "CLAUDE-I02": "ARCH-04", "OBS-001": "OPS-03", "OBS-003": "OPS-06"
-  },
-  "coordinator_revalidation": {
-    "CLAUDE-001": "lectura daily.py:995-1020 y _independent_units/_decide",
-    "CLAUDE-002": "logs/diario_completo.log (aborto 2026-11-02 12:04) y git status --porcelain -- src scripts configs *.bat a las 10:01 y 10:47 del 2026-11-03 (5 rutas)",
-    "CLAUDE-003": "lectura update_prediction_gate.py:64-72,98-108",
-    "CLAUDE-004": "lectura validate_oos.py:75-96,258-268",
-    "CLAUDE-006": "lectura revalidation.py:70-91",
-    "CLAUDE-007": "grep health.py:291 timeout_s=30.0",
-    "CLAUDE-005": "aceptado con evidencia estatica del especialista, no reproducido"
-  },
+  "base": "9de724fe03577dc0f7eb92f0aa829f1be19ea9b8",
+  "working_tree": "clean",
+  "origin_main": "04f3015 (main 1 ahead, unpushed)",
   "commands": [
-    {"cmd": "ruff check src scripts tests", "rc": 0, "result": "All checks passed!"},
-    {"cmd": "mypy src", "rc": 0, "result": "Success: no issues found in 117 source files"},
-    {"cmd": "python -m pytest -q -p no:cacheprovider --basetemp=.codex-tmp/pytest-baseline", "rc": 0, "result": "3434 passed, 1 skipped, 6 warnings in 7778.95s (2:09:38)", "note": "sobre el arbol de trabajo, incluye el WIP del portero NHL"},
-    {"cmd": "Stop hook run-tests-on-stop.sh (suite rapida, -x)", "rc": 1, "result": "1 failed (tests/test_audit_hooks.py::test_crossreview_salida_vacia_con_rc0_no_es_un_veredicto, TimeoutExpired 60 s), 361 passed", "classification": "ENVIRONMENTAL_FAILURE"},
-    {"cmd": "python -m pytest -q -p no:cacheprovider --basetemp=.codex-tmp/pytest-hookcheck tests/test_audit_hooks.py::test_crossreview_salida_vacia_con_rc0_no_es_un_veredicto", "rc": 0, "result": "1 passed in 48.67s"},
-    {"cmd": "python scripts/sync_agent_instructions.py --check", "rc": 0, "result": "Agent instructions: synchronized"},
-    {"cmd": "schtasks /query /fo LIST /v (solo lectura)", "rc": 0, "result": "SQP_Diario_Completo_Cdev ultimo resultado 1; >120 s"},
-    {"cmd": "LSP documentSymbol / goToDefinition / findReferences / workspaceSymbol sobre src/sqp/risk/prediction_gate.py", "rc": null, "result": "documentSymbol y goToDefinition OK (incluido entre ficheros); findReferences solo fichero abierto; workspaceSymbol timeout 60 s"},
-    {"cmd": "mcp__plugin_context7_context7__authenticate", "rc": null, "result": "OAuth iniciado; no completado por el operador; Context7 no usado"}
+    {
+      "cmd": "ruff check src scripts tests",
+      "exit": 0
+    },
+    {
+      "cmd": "mypy src",
+      "exit": 0,
+      "note": "119 files, no issues"
+    },
+    {
+      "cmd": "pytest -q (full, -x, timeout 3000s)",
+      "exit": 124,
+      "status": "NOT_VERIFIABLE",
+      "note": "timeout at 34%, 0 failures until then; host contention"
+    },
+    {
+      "cmd": "stop hook: pytest fast suite (not slow and not heavy, -x)",
+      "exit": 1,
+      "status": "NEW_REGRESSION",
+      "ids": [
+        "AUD-003"
+      ],
+      "note": "1 failed, 1777 passed, 811 deselected in 721s; stopped at first failure"
+    },
+    {
+      "cmd": "pytest test_measure_goalie_nhl::test_exhibition... test_run_status::test_ningun_bat...",
+      "exit": 1,
+      "status": "NEW_REGRESSION",
+      "ids": [
+        "AUD-003",
+        "AUD-002"
+      ]
+    },
+    {
+      "cmd": "pytest tests/research/test_measure_park_bound_mlb.py",
+      "exit": 0,
+      "note": "20 passed"
+    },
+    {
+      "cmd": "pytest area batches (reviewers)",
+      "exit": 0,
+      "note": "70+306+500+198 passed"
+    },
+    {
+      "cmd": "pytest --collect-only",
+      "exit": 0,
+      "note": "3747 tests"
+    },
+    {
+      "cmd": "python scripts/sync_agent_instructions.py --check",
+      "exit": 0
+    },
+    {
+      "cmd": "python scripts/validate_claude_model_routing.py",
+      "exit": 0
+    },
+    {
+      "cmd": "gh run list --branch main",
+      "exit": 0,
+      "note": "red since 2026-11-19 (8 failures, 1 cancelled); last green 2026-11-17 04dae1a"
+    },
+    {
+      "cmd": "gh run view 45015974345 (codex branch @9de724f)",
+      "exit": 0,
+      "note": "5/5 test legs failed: AUD-002, AUD-003"
+    },
+    {
+      "cmd": "Get-ScheduledTask SQP*",
+      "exit": 0,
+      "note": "Diario rc=0 21-11 12:00; Capture_Close running; Validate_OOS rc=0 01-11"
+    }
   ],
-  "coverage_not_verifiable": [
-    ".env y .env.example (lectura denegada)",
-    "barrido de secretos del historial por contenido (timeout)",
-    "ejecucion real de CI (sin red)",
-    "CVEs de dependencias (pip-audit requiere red)",
-    "risk/degradation.py, risk/clv_gate.py",
-    "liquidacion de tenis",
-    "models/fip, park, team_scoring, blend, independent, ml_predict",
-    "recuperacion desde backups",
-    "efecto sobre datos reales de CLAUDE-001 y CLAUDE-004"
-  ],
-  "writes_by_auditor": [
-    "audit/audit-2026-10-18/ (preservacion de la ronda anterior, 11 ficheros, 0 diferencias de hash)",
-    "audit/latest/MANIFEST.json",
-    "audit/latest/claude/REPORT.md",
-    "audit/latest/claude/EVIDENCE.json",
-    "audit/latest/FINDINGS.md",
-    "audit/latest/BACKLOG.md",
-    ".codex-tmp/pytest-* (basetemp de pytest)",
-    "scripts temporales en el scratchpad de la sesion (fuera del repo)"
-  ]
+  "reviewers": {
+    "commit-9de724f": "fable",
+    "quant": "opus",
+    "markets-settlement": "opus",
+    "security-ci": "sonnet",
+    "skills": "sonnet",
+    "architecture-data-tests": "sonnet"
+  },
+  "incidental_writes": "a reviewer appended INFO lines to logs/sqp.log (2 invocations without SQP_LOG_DIR); data/ untouched"
 }

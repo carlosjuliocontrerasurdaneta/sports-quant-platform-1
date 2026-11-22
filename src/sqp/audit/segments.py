@@ -28,6 +28,7 @@ import pandas as pd
 
 from sqp.audit.report import DISCLAIMER, graded_in_window, load_all_settled
 from sqp.config import ROOT
+from sqp.storage.atomic import atomic_write_bytes, atomic_write_csv
 from sqp.evaluation.labels import decision_prob as _labels_decision_prob
 
 DEFAULT_WINDOW_DAYS = 60
@@ -206,6 +207,7 @@ def segment_diagnostics_report(bets_dir: Path | None = None, *,
     ]
     bets_dir.mkdir(parents=True, exist_ok=True)
     path = bets_dir / f"segment_diagnostics_{ts[:8]}.md"
-    path.write_text("\n".join(lines), encoding="utf-8")
-    tbl.to_csv(bets_dir / SEGMENTS_CSV, index=False)
+    # Atomicos (audit-2026-11-22, AUD-012), como el resto de artefactos de data/bets.
+    atomic_write_bytes("\n".join(lines).encode("utf-8"), path)
+    atomic_write_csv(tbl, bets_dir / SEGMENTS_CSV)
     return str(path)

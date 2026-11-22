@@ -768,7 +768,10 @@ def _tennis_results(league: str, provider=None) -> list[dict]:
         return []
 
 
-_CAL_WARN_STATES = frozenset({"unknown_method", "bad_digest", "structural_defect"})
+# `model_mismatch` (audit-2026-11-22, AUD-009): el registro afirma un calibrador
+# validado contra otros parametros del modelo; se sirve en crudo y debe avisar.
+_CAL_WARN_STATES = frozenset({"unknown_method", "bad_digest", "structural_defect",
+                              "model_mismatch"})
 
 
 def _calibration_applied(league: str, market: str, settings: Settings,

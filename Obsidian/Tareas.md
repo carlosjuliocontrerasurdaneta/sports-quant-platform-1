@@ -1,12 +1,32 @@
 ---
 tags: [tareas, sqp]
 creada: 2026-07-08
-actualizada: 2026-11-07
+actualizada: 2026-11-22
 ---
 
 # Tareas
 
 Pendientes activos del proyecto, por prioridad. Al completar una: marcarla, anotar el commit y reflejar el cambio en la [[Bitácora]].
+
+## Auditoría integral y remediación 2026-11-22 (ronda `audit-2026-11-22`)
+
+Ver [[Bitácora/2026-11-22]], `audit/latest/STATUS.md`.
+
+- [ ] **Portero NHL (AUD-003, Enmienda 6):** `pre1.json` ya no es válido. Sobre el HEAD del commit de la remediación, con el árbol limpio y la instantánea `portero-nhl-20261121`, toca:
+  1. `--parity-only`;
+  2. `--pre` nuevo, registrando el HEAD y los hashes;
+  3. modo completo con `--pre-json` del nuevo `--pre`, sin nada en medio.
+
+  Es de clase escalada: Fable.
+- [ ] **Operador (AUD-005):** re-liquidar las 28 filas NCAAB anuladas por la orientación invertida (20 en `graded_ncaab` y 8 en `settled_ncaab`). Es una escritura en `data/`.
+- [ ] **Operador (AUD-009):** decidir sobre `mlb_spreads` y `wnba_spreads`, que no tienen huella del modelo. Dos opciones:
+  - revalidarlos fuera de muestra y volver a promoverlos;
+  - retirarlos con `promote_calibration.py --demote`.
+
+  Hoy se aplican con un aviso.
+- [ ] **Decisión registrada antes de reactivar el gate CLV (AUD-011):** incluir push y medias en el CLV, y aplicar `validate_book_contracts` al cierre. Si se adopta, hay que cambiar a la vez `test_compute_clv_ignores_push_and_void` y la documentación.
+- [ ] **Residual (AUD-009):** `monitoring/health.py::_live_calibration_markets` informa un `model_mismatch` como calibrado. Solo afecta al informe.
+- [ ] **Verificación independiente** de la ronda: fase «Verificación independiente» del contrato de auditoría.
 
 ## Pendientes al cierre del 2026-11-13
 

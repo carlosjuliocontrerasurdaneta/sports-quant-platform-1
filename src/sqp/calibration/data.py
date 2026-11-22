@@ -228,6 +228,21 @@ def load_calibration_training_history(bets_dir: Path | None = None,
     settled = _project_training(drop_pre_fix_quarter_lines(load_all_settled(bets_dir)),
                                 with_key=True)
     served = _project_training(_load_graded_served(cal_dir), with_key=True)
+    # The settled row keeps winning the dedup (its result is the ledger's), but
+    # the TARGET comes from the served row of the same run when there is one:
+    # `BetCandidate` never persisted `adjusted_probability`, so the settled
+    # projection fell back to `model_probability` and 134 of 5,784 matched rows
+    # (2.2 %, mostly 2026-07-17..09-01 with adjustments active) trained on a
+    # quantity different from the one calibrated at serve (audit-2026-11-22,
+    # AUD-008). Same key = same league/event/market/selection/line/day.
+    if not settled.empty and not served.empty:
+        served_adj = (served.loc[served[_KEY_COL].notna()
+                                 & served["adjusted_probability"].notna()]
+                      .drop_duplicates(subset=[_KEY_COL], keep="first")
+                      .set_index(_KEY_COL)["adjusted_probability"])
+        from_served = settled[_KEY_COL].map(served_adj)
+        settled = settled.assign(adjusted_probability=from_served.where(
+            from_served.notna(), settled["adjusted_probability"]))
     both = pd.concat([settled, served], ignore_index=True)
     # NaN keys (incomplete: old-schema rows) must not dedup against each other
     # -- pandas treats NaN as equal in duplicated() -- so they are exempted.
