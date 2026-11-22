@@ -27,7 +27,7 @@ class ResultsStore:
 
     _LOAD_COLS = ["date", "home", "away", "game_id", "home_score", "away_score", "neutral"]
     # `ingested_at` solo para elegir la fila de un `game_id` repetido (AUD-003).
-    _READ_COLS = _LOAD_COLS + ["ingested_at"]
+    _READ_COLS = _LOAD_COLS + ["ingested_at", "available_at"]
 
     def load(self, league: str, dedupe_game_id: bool = True) -> list[dict]:
         """Stored results in chronological order, in ResultsProvider dict format.
@@ -44,7 +44,10 @@ class ResultsStore:
         df = self._migrate(df).sort_values("date", kind="stable")
         if dedupe_game_id:
             df = self._drop_repeated_game_ids(df, league)
-        return df[self._LOAD_COLS].to_dict("records")
+        columns = self._LOAD_COLS + (["available_at"] if "available_at" in df else [])
+        if "available_at" in df:
+            df["available_at"] = df["available_at"].fillna("")
+        return df[columns].to_dict("records")
 
     @staticmethod
     def _drop_repeated_game_ids(df: pd.DataFrame, league: str) -> pd.DataFrame:
@@ -98,7 +101,8 @@ class ResultsStore:
         new["neutral"] = new["neutral"].fillna(False).astype(bool)
         new = self._migrate(new)
         new["ingested_at"] = now
-        new = new[COLUMNS].drop_duplicates(subset=KEY, keep="first")
+        columns = COLUMNS + (["available_at"] if "available_at" in new else [])
+        new = new[columns].drop_duplicates(subset=KEY, keep="first")
         # Dentro del mismo lote, tambien una fila por `game_id` no vacio (AUD-003).
         new = new.loc[~((new["game_id"] != "") & new.duplicated(subset=["game_id"], keep="first"))]
         p = self.path(league)

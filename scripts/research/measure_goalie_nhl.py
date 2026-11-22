@@ -1036,7 +1036,8 @@ def assert_parity(rows_m2: list[dict], rows_m1: list[dict], params: dict, rparam
             runs.append(("T-M2", rows_m2, tp, "M2"))
     for name, rows, p, arm in runs:
         ref = walk_forward_backtest(rows, LEAGUE, FAMILY, p, warmup=WARMUP,
-                                    spread_lines=SPREAD_LINES, total_lines=TOTAL_LINES)
+                                    spread_lines=SPREAD_LINES, total_lines=TOTAL_LINES,
+                                    retrospective_starters=arm == "M1")
         lh, la = (base_lambdas(fr) if arm is None else treat_lambdas(fr, arm, k, beta))
         mine = market_probs(lh, la)
         outc = outcomes_of(fr)

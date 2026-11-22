@@ -74,7 +74,8 @@ def _binary_nll_series(probs: list[float], outcomes: list[float]) -> list[float]
 
 def rolling_origin_improvement(loss_by_value: dict[float, list[float]],
                                default_value: float, n_splits: int,
-                               min_train_frac: float = HOLDOUT_MIN_TRAIN_FRAC) -> dict | None:
+                               min_train_frac: float = HOLDOUT_MIN_TRAIN_FRAC, *,
+                               sample_weights: list[float] | None = None) -> dict | None:
     """Rolling-origin holdout estimate of how the in-sample selection generalizes.
 
     ``loss_by_value`` maps each grid value (and the default) to its per-game loss
@@ -92,17 +93,20 @@ def rolling_origin_improvement(loss_by_value: dict[float, list[float]],
         return None
     start = max(1, int(n * min_train_frac))
     bounds = [start + round((n - start) * k / n_splits) for k in range(n_splits + 1)]
-    values = list(loss_by_value)
+    weights = sample_weights if sample_weights is not None else [1.0] * n
+    weighted = {value: [loss * w for loss, w in zip(losses, weights)]
+                for value, losses in loss_by_value.items()}
     improvements: list[float] = []
     selections: list[float] = []
     for k in range(n_splits):
         tr_end, te_lo, te_hi = bounds[k], bounds[k], bounds[k + 1]
         if te_hi <= te_lo or tr_end < 1:
             continue
-        sel = min(values, key=lambda v: sum(loss_by_value[v][:tr_end]) / tr_end)
-        block = te_hi - te_lo
-        sel_test = sum(loss_by_value[sel][te_lo:te_hi]) / block
-        def_test = sum(loss_by_value[default_value][te_lo:te_hi]) / block
+        train_weight = sum(weights[:tr_end])
+        test_weight = sum(weights[te_lo:te_hi])
+        sel = min(weighted, key=lambda v: sum(weighted[v][:tr_end]) / train_weight)
+        sel_test = sum(weighted[sel][te_lo:te_hi]) / test_weight
+        def_test = sum(weighted[default_value][te_lo:te_hi]) / test_weight
         improvements.append(def_test - sel_test)
         selections.append(sel)
     if not improvements:
@@ -113,7 +117,8 @@ def rolling_origin_improvement(loss_by_value: dict[float, list[float]],
 
 def _gate(n: int, min_n: int, n_label: str, insample_improvement: float, margin: float,
           loss_by_value: dict[float, list[float]], default_value: float,
-          n_splits: int) -> tuple[bool, str, float | None, list[float]]:
+          n_splits: int, *, sample_weights: list[float] | None = None
+          ) -> tuple[bool, str, float | None, list[float]]:
     """Acceptance gate. With a rolling-origin holdout (n_splits>=2 and enough
     data) the margin is applied to the OUT-OF-SAMPLE improvement; otherwise it
     falls back to the in-sample improvement. The sample-size gate always holds.
@@ -125,7 +130,9 @@ def _gate(n: int, min_n: int, n_label: str, insample_improvement: float, margin:
     (audit 2026-08-31, N4-A-5). Surfacing them lets a caller -- or a human --
     see the disagreement instead of having to re-derive it.
     """
-    ro = rolling_origin_improvement(loss_by_value, default_value, n_splits) if n_splits >= 2 else None
+    ro = (rolling_origin_improvement(loss_by_value, default_value, n_splits,
+                                     sample_weights=sample_weights)
+          if n_splits >= 2 else None)
     if ro is None:
         accepted, reason = _decide(n, min_n, n_label, insample_improvement, margin)
         return accepted, reason, None, []
@@ -222,7 +229,9 @@ def tune_market_param(results: list[dict], league: str, family: str, *,
     def _run(value: float) -> dict:
         params = dict(league_params or {})
         params[param] = float(value)
-        res = walk_forward_backtest(results, league, family, params, warmup=warmup, **line_kw)
+        res = walk_forward_backtest(results, league, family, params, warmup=warmup,
+                                    spread_lines=line_kw.get("spread_lines", ()),
+                                    total_lines=line_kw.get("total_lines", ()))
         m = res["markets"].get(key)
         if m is None:
             raise ValueError(f"League '{league}' produced no {market} estimates at line {line}.")
@@ -231,9 +240,12 @@ def tune_market_param(results: list[dict], league: str, family: str, *,
     rows: list[dict] = []
     loss_series: dict[float, list[float]] = {}
     n_eval = 0
+    sample_weights = None
     for value in grid:
         m = _run(value)
         n_eval = m["n"]
+        if m["n_resolved_units"] != n_eval:
+            sample_weights = m["weights"]
         rows.append({param: float(value), "log_loss": m["log_loss"], "brier": m["brier"],
                      "bias": m["bias"], "ece": m["ece"], "n": m["n"]})
         loss_series[float(value)] = _binary_nll_series(m["probs"], m["outcomes"])
@@ -246,7 +258,8 @@ def tune_market_param(results: list[dict], league: str, family: str, *,
         loss_series[float(default_value)] = _binary_nll_series(dm["probs"], dm["outcomes"])
     insample_improvement = base_ll - float(best["log_loss"])
     accepted, reason, oos, oos_selections = _gate(n_eval, min_eval, "evaluated games", insample_improvement,
-                                  margin, loss_series, float(default_value), n_splits)
+                                  margin, loss_series, float(default_value), n_splits,
+                                  sample_weights=sample_weights)
     return {"league": league, "param": param, "market_key": key,
             "best_value": float(best[param]),                    # argmin crudo, SIEMPRE
             "best_log_loss": float(best["log_loss"]),

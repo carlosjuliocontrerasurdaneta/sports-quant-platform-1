@@ -90,7 +90,7 @@ def pre_pick_movement(event_odds: pd.DataFrame, *, market: str, selection: str,
     distintos pre-pick o falta consenso en alguno de los dos extremos."""
     if event_odds.empty or not picked_at:
         return None
-    ts = pd.to_datetime(event_odds["captured_at"], errors="coerce", utc=True)
+    ts = pd.to_datetime(event_odds["captured_at"], errors="coerce", utc=True, format="mixed")
     try:
         pick_ts = pd.Timestamp(picked_at)
         if pick_ts.tzinfo is None:
@@ -100,10 +100,10 @@ def pre_pick_movement(event_odds: pd.DataFrame, *, market: str, selection: str,
     pre = event_odds[ts.notna() & (ts <= pick_ts)]
     if pre.empty:
         return None
-    stamps = sorted(pd.to_datetime(pre["captured_at"], utc=True).unique())
+    stamps = sorted(pd.to_datetime(pre["captured_at"], utc=True, format="mixed").unique())
     if len(stamps) < 2:
         return None
-    pre_ts = pd.to_datetime(pre["captured_at"], utc=True)
+    pre_ts = pd.to_datetime(pre["captured_at"], utc=True, format="mixed")
     ref = snapshot_consensus_price(pre[pre_ts == stamps[0]], market, selection,
                                    point, league=league)
     at_pick = snapshot_consensus_price(pre[pre_ts == stamps[-1]], market,

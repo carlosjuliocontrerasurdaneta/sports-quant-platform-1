@@ -7,13 +7,16 @@
 - /scores endpoint feeds ratings and settlement for leagues marked has_scores.
 """
 from __future__ import annotations
+import math
 import os
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import cast
+from uuid import uuid4
 
 import requests
-from sqp.exceptions import ProviderNotConfiguredError
+from sqp.exceptions import DataValidationError, ProviderNotConfiguredError
 from sqp.domain.models import Event, EventOdds, MarketLine
 from sqp.logging_config import get_logger
 from sqp.markets.odds import is_usable_price
@@ -72,7 +75,8 @@ class OddsAPIClient:
     def __init__(self, api_key: str | None, regions: str = "us,eu", odds_format: str = "decimal",
                  session: requests.Session | None = None, *,
                  cache_ttl: float | None = None, force_refresh: bool | None = None,
-                 offline_mode: bool | None = None, cache_dir: Path | None = None):
+                 offline_mode: bool | None = None, cache_dir: Path | None = None,
+                 track_snapshots: bool = False):
         if odds_format != "decimal":
             # Prices are persisted as price_decimal; american prices would be
             # stored in a decimal field and silently corrupt every probability.
@@ -98,6 +102,9 @@ class OddsAPIClient:
         # Separa "se puede leer" de "es accionable": en modo offline la primera
         # sigue siendo si y la segunda la decide el pipeline (AUD-20260906-06).
         self.last_response_age_s: float = 0.0
+        self.last_response_captured_at: str | None = None
+        self._snapshot_id: str | None = None
+        self.track_snapshots = track_snapshots
         # Segundos de espera por errores de CONEXION que le quedan al cliente.
         self._connection_wait_left: float = _CONNECTION_WAIT_BUDGET
         # On-disk TTL cache for paid endpoints: re-running within the TTL costs no
@@ -117,17 +124,49 @@ class OddsAPIClient:
 
     def mark_snapshot_pending(self) -> None:
         """Marca que el snapshot de la ultima respuesta aun no esta en disco."""
-        if self.last_cache_key is not None:
+        if self.last_cache_key is not None and self._snapshot_id is None:
             self._cache.mark_pending(self.last_cache_key)
 
     def clear_snapshot_pending(self) -> None:
         if self.last_cache_key is not None:
+            if self._snapshot_id is not None:
+                self.acknowledge_snapshot(self._snapshot_id)
+                return
             self._cache.clear_pending(self.last_cache_key)
 
     def snapshot_pending(self) -> bool:
         """True si la ultima respuesta salio de una peticion cuyo snapshot no
         llego a persistirse (auditoria 2026-10-15, AUD-012)."""
-        return self.last_cache_key is not None and self._cache.is_pending(self.last_cache_key)
+        if self.last_cache_key is None:
+            return False
+        if self._snapshot_id is not None:
+            return self._cache.snapshot_pending(self.last_cache_key, self._snapshot_id)
+        return self._cache.is_pending(self.last_cache_key)
+
+    def acknowledge_snapshot(self, snapshot_id: str) -> None:
+        if self.last_cache_key is not None:
+            self._cache.acknowledge_snapshot(self.last_cache_key, snapshot_id)
+
+    def pending_odds_snapshots(self, league_id: str, sport_key: str
+                               ) -> list[tuple[str, str, list[EventOdds]]]:
+        """Daily acquisitions still awaiting persistence, including replaced cache entries."""
+        if self.last_cache_key is None:
+            return []
+        pending = []
+        last_parse_skipped = self.last_parse_skipped
+        for entry in self._cache.pending_entries(self.last_cache_key):
+            if entry.snapshot_id is None or entry.snapshot_id == self._snapshot_id:
+                continue
+            captured_at = entry.captured_at.isoformat()
+            try:
+                events = self._parse_events(entry.data, sport_key, league_id, captured_at=captured_at)
+            except DataValidationError as exc:
+                log.warning("[%s] captura pendiente %s sin cuotas: %s", league_id, captured_at, exc)
+                self.acknowledge_snapshot(entry.snapshot_id)
+                continue
+            pending.append((entry.snapshot_id, captured_at, events))
+        self.last_parse_skipped = last_parse_skipped
+        return pending
 
     def _retry_wait(self, attempt: int, *, unreachable: bool) -> float | None:
         """Segundos a esperar antes del intento siguiente, o `None` para rendirse.
@@ -153,7 +192,8 @@ class OddsAPIClient:
             raise ProviderNotConfiguredError(
                 "ODDS_API_KEY is missing. Set it in .env or run with SQP_MODE=demo.")
 
-    def _get(self, path: str, *, cache: bool = False, **params) -> list | dict:
+    def _get(self, path: str, *, cache: bool = False, track_snapshot: bool = False,
+             **params) -> list | dict:
         self.last_response_cached = False
         # Reset por llamada: _capture_quota solo asigna cuando el header viene
         # presente, asi que una respuesta sin headers heredaba el costo de la
@@ -164,6 +204,8 @@ class OddsAPIClient:
         # pipeline para decidir si un precio es ACCIONABLE, que es una pregunta
         # distinta de si se puede leer (AUD-20260906-06).
         self.last_response_age_s = 0.0
+        self.last_response_captured_at = None
+        self._snapshot_id = None
         ckey = self._cache.key(path, params) if cache else None
         self.last_cache_key = ckey
         if ckey is not None and not self.force_refresh:
@@ -174,11 +216,13 @@ class OddsAPIClient:
             # el pipeline generaba candidatos con stake y `data_label="real"`
             # sobre cuotas de horas, selladas con `generated_at` de ahora.
             ttl = float("inf") if self.offline_mode else self.cache_ttl
-            hit = self._cache.get(ckey, ttl)
+            hit = self._cache.get_entry(ckey, ttl, recover_pending=track_snapshot)
             if hit is not None:
                 self.last_response_cached = True
-                self.last_response_age_s = self._cache.age_s(ckey) or 0.0
-                return hit
+                self.last_response_age_s = hit.age_s
+                self.last_response_captured_at = hit.captured_at.isoformat()
+                self._snapshot_id = hit.snapshot_id
+                return hit.data
         # El guard offline NO puede depender de `cache`. Estaba dentro de
         # `if cache`, asi que solo cubria /odds y /historical: `fetch_scores`
         # (de pago) y `list_sports` llaman a `_get` sin `cache=True` -- a
@@ -228,9 +272,12 @@ class OddsAPIClient:
                 f"{status} error for {BASE}{path} (query redacted)",
                 response=exc.response) from None
         self._capture_quota(getattr(r, "headers", {}) or {})
+        captured_at = datetime.now(timezone.utc)
+        self.last_response_captured_at = captured_at.isoformat()
         data = r.json()
         if ckey is not None:
-            self._cache.put(ckey, data)
+            self._snapshot_id = uuid4().hex if track_snapshot else None
+            self._cache.put(ckey, data, captured_at=captured_at, snapshot_id=self._snapshot_id)
         return data
 
     def _capture_quota(self, headers) -> None:
@@ -258,7 +305,8 @@ class OddsAPIClient:
         sport = self._sports_cache.get(sport_key)
         return None if sport is None else bool(sport.get("active", False))
 
-    def _parse_events(self, raw: list, sport_key: str, league_id: str) -> list[EventOdds]:
+    def _parse_events(self, raw: object, sport_key: str, league_id: str, *,
+                      captured_at: str | None = None) -> list[EventOdds]:
         """Shared parser for live and historical odds payloads (same event shape).
 
         Las cotizaciones degeneradas (``price_decimal <= 1.0``, "sin pago") se
@@ -283,39 +331,79 @@ class OddsAPIClient:
         # AUD-019: un elemento malformado (evento sin id/equipos, outcome sin
         # price o no numerico) se OMITE y se cuenta; antes tiraba la liga entera
         # DESPUES de haber pagado la peticion.
-        skipped_events = 0
-        skipped_outcomes = 0
+        skipped = dict.fromkeys(("eventos", "casas", "mercados", "cotizaciones"), 0)
         self.last_parse_skipped = 0
+        if not isinstance(raw, list):
+            self.last_parse_skipped = 1
+            raise DataValidationError(f"[{league_id}] payload de cuotas: se esperaba una lista de eventos.")
         for ev in raw:
-            try:
-                event = Event(event_id=ev["id"], sport_key=sport_key, league=league_id,
-                              home=ev["home_team"], away=ev["away_team"],
-                              start_time=ev["commence_time"], data_label="real")
-            except (KeyError, TypeError):
-                skipped_events += 1
+            if not isinstance(ev, dict) or not all(
+                isinstance(ev.get(key), str) and ev[key].strip()
+                for key in ("id", "home_team", "away_team", "commence_time")
+            ):
+                skipped["eventos"] += 1
                 continue
+            books = ev.get("bookmakers", [])
+            try:
+                datetime.fromisoformat(ev["commence_time"])
+            except ValueError:
+                skipped["eventos"] += 1
+                continue
+            if not isinstance(books, list):
+                skipped["eventos"] += 1
+                continue
+            event = Event(event_id=ev["id"], sport_key=sport_key, league=league_id,
+                          home=ev["home_team"], away=ev["away_team"],
+                          start_time=ev["commence_time"], data_label="real",
+                          neutral=ev.get("neutral") is True)
             lines: list[MarketLine] = []
-            for bm in ev.get("bookmakers", []):
+            for bm in books:
+                if (not isinstance(bm, dict) or not isinstance(bm.get("key"), str)
+                        or not bm["key"].strip() or not isinstance(bm.get("markets", []), list)):
+                    skipped["casas"] += 1
+                    continue
                 for mk in bm.get("markets", []):
+                    if (not isinstance(mk, dict) or not isinstance(mk.get("key"), str)
+                            or not mk["key"].strip() or not isinstance(mk.get("outcomes", []), list)):
+                        skipped["mercados"] += 1
+                        continue
                     for oc in mk.get("outcomes", []):
+                        if not isinstance(oc, dict) or not isinstance(oc.get("name"), str) or not oc["name"].strip():
+                            skipped["cotizaciones"] += 1
+                            continue
+                        outcome = oc["name"].strip()
+                        if mk["key"] == "h2h" and outcome.casefold() in {"draw", "tie"}:
+                            outcome = "Draw"
+                        point = oc.get("point")
+                        description = oc.get("description")
                         try:
                             price = float(oc["price"])
-                            line = MarketLine(
-                                market=mk["key"], bookmaker=bm["key"], outcome=oc["name"],
-                                price_decimal=price, point=oc.get("point"),
-                                description=oc.get("description"))
-                        except (KeyError, TypeError, ValueError, AttributeError):
-                            skipped_outcomes += 1
-                            continue
+                            if isinstance(oc["price"], bool) or isinstance(point, bool):
+                                raise ValueError("precio o punto booleano")
+                            if description is not None and not isinstance(description, str):
+                                raise ValueError("descripción inválida")
+                            point = None if point is None else float(point)
+                            if point is not None and not math.isfinite(point):
+                                raise ValueError("punto no finito")
+                        except (KeyError, TypeError, ValueError, OverflowError):
+                            skipped["cotizaciones"] += 1
+                            # Una cara Draw sigue identificando el contrato 1X2
+                            # aunque su cuota o su punto sean ilegibles.
+                            if mk["key"] != "h2h" or outcome != "Draw":
+                                continue
+                            price, point = float("nan"), None
+                            description = None
                         if not is_usable_price(price):
                             degenerate += 1
-                        lines.append(line)
-            out.append(EventOdds(event=event, lines=lines))
-        self.last_parse_skipped = skipped_events + skipped_outcomes
+                        lines.append(MarketLine(
+                            market=mk["key"], bookmaker=bm["key"], outcome=outcome,
+                            price_decimal=price, point=point, description=description,
+                        ))
+            out.append(EventOdds(event=event, lines=lines, captured_at=captured_at))
+        self.last_parse_skipped = sum(skipped.values())
         if self.last_parse_skipped:
-            log.warning("[%s] %d evento(s) y %d cotizacion(es) malformados del "
-                        "proveedor omitidos; el resto de la liga se conserva.",
-                        league_id, skipped_events, skipped_outcomes)
+            log.warning("[%s] elementos de cuotas malformados: %s.", league_id,
+                        ", ".join(f"{kind}={count}" for kind, count in skipped.items() if count))
         if degenerate:
             # Agregado por llamada, no por linea: con 1.611 casos en el historico
             # un aviso por fila seria ruido que nadie lee.
@@ -323,12 +411,21 @@ class OddsAPIClient:
                         "finito) recibidas del proveedor y persistidas. El "
                         "consenso las descarta al leer; se avisa aqui para que el "
                         "problema sea visible en su ORIGEN.", league_id, degenerate)
+        if self.last_parse_skipped and not any(eo.lines for eo in out):
+            raise DataValidationError(f"[{league_id}] no quedaron eventos con cuotas después del parseo.")
         return out
 
     def fetch_odds(self, league_id: str, sport_key: str, markets: str = "h2h,spreads,totals") -> list[EventOdds]:
         raw = self._get(f"/sports/{sport_key}/odds", cache=True, regions=self.regions,
-                        markets=markets, oddsFormat=self.odds_format)
-        return self._parse_events(cast(list, raw), sport_key, league_id)
+                        markets=markets, oddsFormat=self.odds_format,
+                        track_snapshot=self.track_snapshots)
+        try:
+            return self._parse_events(raw, sport_key, league_id,
+                                      captured_at=self.last_response_captured_at)
+        except DataValidationError:
+            if self._snapshot_id is not None:
+                self.acknowledge_snapshot(self._snapshot_id)
+            raise
 
     def list_events(self, sport_key: str) -> list[dict]:
         """Upcoming events (id, commence_time, home_team, away_team) for a sport.
@@ -346,9 +443,8 @@ class OddsAPIClient:
         """
         raw = self._get(f"/sports/{sport_key}/events/{event_id}/odds", cache=True,
                         regions=self.regions, markets=markets, oddsFormat=self.odds_format)
-        if not isinstance(raw, dict) or "id" not in raw:
-            return []
-        return self._parse_events([raw], sport_key, league_id)
+        return self._parse_events([raw], sport_key, league_id,
+                                  captured_at=self.last_response_captured_at)
 
     def fetch_historical_odds(self, sport_key: str, date_iso: str, league_id: str | None = None,
                               markets: str = "h2h,spreads,totals") -> dict:
@@ -361,8 +457,12 @@ class OddsAPIClient:
         """
         raw = self._get(f"/historical/sports/{sport_key}/odds", cache=True, regions=self.regions,
                         markets=markets, oddsFormat=self.odds_format, date=date_iso)
-        snap = raw if isinstance(raw, dict) else {}
-        events = self._parse_events(snap.get("data", []) or [], sport_key, league_id or sport_key)
+        if not isinstance(raw, dict) or "data" not in raw:
+            self.last_parse_skipped = 1
+            raise DataValidationError(f"[{league_id or sport_key}] respuesta histórica sin eventos.")
+        snap = raw
+        events = self._parse_events(snap["data"], sport_key, league_id or sport_key,
+                                    captured_at=snap.get("timestamp"))
         return {"timestamp": snap.get("timestamp"),
                 "previous_timestamp": snap.get("previous_timestamp"),
                 "next_timestamp": snap.get("next_timestamp"),

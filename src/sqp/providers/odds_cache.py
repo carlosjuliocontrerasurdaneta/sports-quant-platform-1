@@ -1,16 +1,38 @@
-"""On-disk TTL cache for The Odds API responses (credit-saving).
-
-Keyed by endpoint + query params (api key excluded). A re-run within the TTL is
-served from disk and costs no credits. Used only for the paid endpoints
-(/odds, /scores, /historical); the free /sports list is never cached so the
-live quota header stays fresh for the budget guard.
-"""
+"""Atomic TTL cache with a durable journal for unpersisted daily odds snapshots."""
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
+
+from sqp.exceptions import LockNoAdquiridoError
+from sqp.storage.atomic import atomic_write_json
+from sqp.storage.lock import locked
+
+
+@dataclass(frozen=True)
+class CacheEntry:
+    data: Any
+    captured_at: datetime
+    snapshot_id: str | None = None
+
+    @property
+    def age_s(self) -> float:
+        # NTFS mtime can be ahead of the process clock.
+        return max(0.0, time.time() - self.captured_at.timestamp())
+
+    def payload(self) -> dict:
+        return {
+            "_sqp_cache_version": 1,
+            "captured_at": self.captured_at.isoformat(),
+            "snapshot_id": self.snapshot_id,
+            "data": self.data,
+        }
 
 
 class FileCache:
@@ -20,68 +42,68 @@ class FileCache:
     @staticmethod
     def key(path: str, params: dict) -> str:
         norm = "&".join(f"{k}={params[k]}" for k in sorted(params) if k != "apiKey")
-        # Content-addressing only, never a signature or credential hash. Marking
-        # that intent explicitly avoids treating this cache key as cryptography.
-        return hashlib.sha1(
-            f"{path}?{norm}".encode("utf-8"), usedforsecurity=False
-        ).hexdigest()
+        return hashlib.sha1(f"{path}?{norm}".encode("utf-8"), usedforsecurity=False).hexdigest()
 
     def _file(self, key: str) -> Path:
         return self.dir / f"{key}.json"
 
     def age_s(self, key: str) -> float | None:
-        """Antiguedad en segundos de la entrada cacheada, o None si no existe.
-
-        La expone `OddsAPIClient` para que el pipeline pueda distinguir "esta
-        respuesta vino de la red" de "esta respuesta tiene cuatro horas"
-        (AUD-20260906-06). Acotada por abajo por la misma razon que `get`: el
-        `mtime` puede ir por delante del reloj.
-        """
-        f = self._file(key)
-        if not f.exists():
-            return None
-        try:
-            return max(0.0, time.time() - f.stat().st_mtime)
-        except OSError:
-            return None
+        entry = self._read(self._file(key))
+        return None if entry is None else entry.age_s
 
     def get(self, key: str, ttl: float):
-        """Return cached payload if present and younger than ttl (ttl=inf = any age)."""
-        f = self._file(key)
-        if not f.exists():
-            return None
-        # `>=`, no `>`: "younger than ttl" es age < ttl, asi que una entrada con
-        # age == ttl ya caduco. Con `>` un ttl=0 servia la entrada si el archivo
-        # se habia escrito en el mismo tick del reloj (age 0.0), lo que rompia la
-        # pata Windows del CI de forma intermitente segun la granularidad de
-        # mtime del runner (auditoria 2026-08-05).
-        #
-        # Y `max(0.0, ...)`: la edad tambien podia salir NEGATIVA, y entonces
-        # NINGUN ttl la caducaba -- ni siquiera 0 (AUD-MED-001, 2026-09-06,
-        # reproducido). `time.time()` y el `mtime` de NTFS no salen del mismo
-        # reloj ni con la misma granularidad, asi que un fichero recien escrito
-        # puede tener sello POSTERIOR al instante que devuelve `time.time()`.
-        # El arreglo del 2026-08-05 cerro el caso age == 0 y dejo abierto age < 0,
-        # que es el que tenia el CI de `main` en rojo desde el 2026-09-05: el
-        # test de borde congela el reloj con monkeypatch, asi que por
-        # construccion no puede producir una edad negativa.
-        #
-        # Un reloj que salta hacia atras (correccion NTP) produce lo mismo sobre
-        # entradas ya guardadas: sin el piso, servirian cuotas pasadas de su TTL.
-        # Acotar por abajo es la direccion segura -- como mucho se refresca de
-        # mas, nunca se sirve algo caducado.
-        if ttl != float("inf") and max(0.0, time.time() - f.stat().st_mtime) >= ttl:
-            return None
+        entry = self.get_entry(key, ttl)
+        return None if entry is None else entry.data
+
+    @staticmethod
+    def _read(path: Path) -> CacheEntry | None:
         try:
-            return json.loads(f.read_text(encoding="utf-8"))
-        except (ValueError, OSError):
+            # Dato y mtime vienen del mismo descriptor incluso si otro
+            # proceso reemplaza el archivo de caché al mismo tiempo.
+            with path.open(encoding="utf-8") as fh:
+                data = json.load(fh)
+                mtime = datetime.fromtimestamp(os.fstat(fh.fileno()).st_mtime, timezone.utc)
+            if isinstance(data, dict) and data.get("_sqp_cache_version") == 1:
+                stamp = datetime.fromisoformat(data["captured_at"])
+                snapshot_id = data.get("snapshot_id")
+                if stamp.tzinfo is None:
+                    return None
+                if snapshot_id is not None and (
+                    not isinstance(snapshot_id, str) or len(snapshot_id) != 32
+                    or any(c not in "0123456789abcdef" for c in snapshot_id)
+                ):
+                    return None
+                return CacheEntry(data["data"], stamp, snapshot_id)
+            return CacheEntry(data, mtime)
+        except (KeyError, TypeError, ValueError, OSError):
             return None
 
-    # Marca "snapshot pendiente" (auditoria 2026-10-15, AUD-012). La escribe y
-    # la consume SOLO el run diario: se pone tras una respuesta de red y se
-    # retira al persistir su snapshot en data/odds/. Si sigue ahi cuando la
-    # misma respuesta se sirve de cache, el snapshot nunca llego a disco. Sin
-    # marca = comportamiento previo (otros consumidores y entradas antiguas).
+    def get_entry(self, key: str, ttl: float, *, recover_pending: bool = False) -> CacheEntry | None:
+        latest = self._read(self._file(key))
+        primary = latest
+        if recover_pending:
+            # El diario es legible aun si la caché principal nunca se publicó.
+            for entry in self.pending_entries(key):
+                if latest is None or entry.captured_at > latest.captured_at:
+                    latest = entry
+        if latest is None or latest.age_s >= ttl:
+            return None
+        if latest is not primary:
+            self._publish_latest(key, latest)
+        return latest
+
+    def _publish_latest(self, key: str, entry: CacheEntry) -> bool:
+        path = self._file(key)
+        try:
+            with locked(path):
+                previous = self._read(path)
+                if previous is None or entry.captured_at >= previous.captured_at:
+                    atomic_write_json(entry.payload(), path, indent=None)
+        except (TypeError, OSError, LockNoAdquiridoError):
+            return False
+        return True
+
+    # Las marcas sin identificador siguen siendo legibles en instalaciones antiguas.
     def _pending_file(self, key: str) -> Path:
         return self.dir / f"{key}.pending"
 
@@ -90,7 +112,7 @@ class FileCache:
             self.dir.mkdir(parents=True, exist_ok=True)
             self._pending_file(key).touch()
         except OSError:
-            pass  # best-effort, como `put`
+            pass
 
     def clear_pending(self, key: str) -> None:
         try:
@@ -101,15 +123,38 @@ class FileCache:
     def is_pending(self, key: str) -> bool:
         return self._pending_file(key).exists()
 
-    def put(self, key: str, data) -> None:
+    def _snapshot_file(self, key: str, snapshot_id: str) -> Path:
+        return self.dir / f"{key}.{snapshot_id}.snapshot.json"
+
+    def pending_entries(self, key: str) -> list[CacheEntry]:
+        entries = []
+        for path in self.dir.glob(f"{key}.*.snapshot.json"):
+            entry = self._read(path)
+            if (entry is not None and entry.snapshot_id is not None
+                    and path == self._snapshot_file(key, entry.snapshot_id)):
+                entries.append(entry)
+        return sorted(entries, key=lambda entry: entry.captured_at)
+
+    def snapshot_pending(self, key: str, snapshot_id: str) -> bool:
+        return self._snapshot_file(key, snapshot_id).exists()
+
+    def acknowledge_snapshot(self, key: str, snapshot_id: str) -> None:
+        self._snapshot_file(key, snapshot_id).unlink(missing_ok=True)
+
+    def put(self, key: str, data, *, captured_at: datetime | None = None,
+            snapshot_id: str | None = None) -> None:
         try:
             self.dir.mkdir(parents=True, exist_ok=True)
-            self._file(key).write_text(json.dumps(data), encoding="utf-8")
+            if captured_at is None:
+                atomic_write_json(data, self._file(key), indent=None)
+            else:
+                entry = CacheEntry(data, captured_at, snapshot_id)
+                if snapshot_id is not None:
+                    # Cada adquisición se publica junto con su propia obligación
+                    # de escritura y puede sobrevivir a refrescos concurrentes.
+                    atomic_write_json(entry.payload(), self._snapshot_file(key, snapshot_id), indent=None)
+                if not self._publish_latest(key, entry):
+                    return
         except (TypeError, OSError):
-            return  # cache write is best-effort; never break a live fetch over it
-        # La marca habla del contenido ANTERIOR de la clave: si otra peticion lo
-        # reemplaza (la captura de cierre refresca con force_refresh=True y guarda
-        # su propio snapshot), el reintento del run diario re-persistiria como
-        # "pendiente" una respuesta que ya esta en disco (ventana (b) de AUD-012,
-        # verificacion 2026-10-16). El run diario vuelve a marcar tras su put.
+            return
         self.clear_pending(key)

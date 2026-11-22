@@ -737,7 +737,8 @@ def run_parity(results: list[dict], league_params: dict, kw: dict, stride: int =
     report: dict[str, Any] = {"n_evaluados": int(n), "stride": stride, "cotas": {}}
     for b in PARITY_BOUNDS:
         eng = walk_forward_backtest(results, LEAGUE, FAMILY, {**base, "park_bound": b},
-                                    warmup=WARMUP, spread_lines=(-RL, RL), total_lines=(CANON_LINE,))
+                                    warmup=WARMUP, spread_lines=(-RL, RL), total_lines=(CANON_LINE,),
+                                    retrospective_starters=True)
         lh, la = lam_arm(ref, b)
         ml = np.full(n, np.nan)
         rlm = np.full(n, np.nan)

@@ -54,21 +54,38 @@ def test_sin_ninguna_liga_descubierta_tampoco_es_un_fallo(cli, monkeypatch):
     assert cli.main() == 0
 
 
+def test_lectura_de_cuotas_rota_no_interrumpe_la_siguiente_liga(cli, monkeypatch):
+    llamadas = []
+
+    def cargar(root, league):
+        if league == "rota":
+            raise OSError("CSV ilegible")
+        return {"odds": []}
+
+    def validar(league, odds, settings, args):
+        llamadas.append(league)
+        return True
+
+    monkeypatch.setattr(cli, "load_closing_odds", cargar)
+    monkeypatch.setattr(cli, "_validar_liga", validar)
+    monkeypatch.setattr(cli.sys, "argv", ["validate_oos.py", "--leagues", "rota", "mlb"])
+    assert cli.main() == 1
+    assert llamadas == ["mlb"]
+
+
 def test_un_error_de_verdad_sigue_saliendo_distinto_de_cero(cli, monkeypatch):
     """Contraprueba obligatoria: sin ella, "devolver 0 siempre" pasaria los dos
     tests de arriba y el script no podria avisar de nada.
 
-    Un fallo real propaga la excepcion y `SystemExit(main())` la convierte en un
-    codigo distinto de cero. Lo que se elimino es el 1 FABRICADO por una
-    condicion normal, no la capacidad de fallar.
+    Un fallo real devuelve un código distinto de cero, aunque los errores de
+    lectura se aíslen por liga.
     """
     def revienta(root, lg):
         raise RuntimeError("el store de cuotas esta corrupto")
 
     monkeypatch.setattr(cli, "load_closing_odds", revienta)
     monkeypatch.setattr(cli.sys, "argv", ["validate_oos.py", "--leagues", "mlb"])
-    with pytest.raises(RuntimeError):
-        cli.main()
+    assert cli.main() == 1
 
 
 def test_no_declara_fallo_por_una_liga_sin_backfill(cli, monkeypatch):

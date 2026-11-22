@@ -8,8 +8,10 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
-ROOT = Path(__file__).resolve().parents[2]
-CONFIG_DIR = ROOT / "configs"
+_PACKAGE = Path(__file__).resolve().parent
+_BUNDLED_CONFIG = _PACKAGE / "_config_resources"
+ROOT = Path.cwd() if _BUNDLED_CONFIG.is_dir() else _PACKAGE.parents[1]
+CONFIG_DIR = ROOT / "configs" if (ROOT / "configs").is_dir() else _BUNDLED_CONFIG
 
 # Ruta explicita: load_dotenv() sin argumento busca desde el CWD, asi que una
 # invocacion fuera de la raiz del repo podia cargar otro .env o ninguno
@@ -20,6 +22,12 @@ load_dotenv(ROOT / ".env")
 def load_yaml(path: Path) -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
+
+
+def _yaml_bool(value: object, key: str) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError(f"{key} must be a YAML boolean, got {value!r}")
+    return value
 
 
 _TRUE = ("1", "true", "yes", "on")
@@ -399,8 +407,8 @@ class Settings:
             "LOW_BOOK_PENALTY": self.risk.low_book_penalty,
         }
         for name, value in nonnegative.items():
-            if value < 0:
-                raise ValueError(f"{name} must be >= 0, got {value}")
+            if not math.isfinite(value) or value < 0:
+                raise ValueError(f"{name} must be finite and >= 0, got {value}")
         if self.risk.max_plausible_edge < self.risk.min_edge:
             raise ValueError("MAX_PLAUSIBLE_EDGE must be >= MIN_EDGE")
         if self.risk.min_books_for_consensus < 0:
@@ -413,15 +421,17 @@ class Settings:
             raise ValueError("DEGRADATION_WINDOW_DAYS must be >= 1")
         if self.degradation_min_n < 1:
             raise ValueError("DEGRADATION_MIN_N must be >= 1")
-        if self.degradation_brier_margin < 0:
-            raise ValueError("DEGRADATION_BRIER_MARGIN must be >= 0")
+        if not math.isfinite(self.degradation_brier_margin) or self.degradation_brier_margin < 0:
+            raise ValueError("DEGRADATION_BRIER_MARGIN must be finite and >= 0")
+        if not all(map(math.isfinite, (self.degradation_roi_resume, self.degradation_roi_pause))):
+            raise ValueError("DEGRADATION_ROI_RESUME and DEGRADATION_ROI_PAUSE must be finite")
         if self.degradation_roi_resume < self.degradation_roi_pause:
             raise ValueError("DEGRADATION_ROI_RESUME must be >= "
                              "DEGRADATION_ROI_PAUSE (hysteresis)")
         if self.revalidation_window_min < 1:
             raise ValueError("REVALIDATION_WINDOW_MIN must be >= 1")
-        if self.revalidation_price_max_age_min <= 0:
-            raise ValueError("REVALIDATION_PRICE_MAX_AGE_MIN must be > 0")
+        if not math.isfinite(self.revalidation_price_max_age_min) or self.revalidation_price_max_age_min <= 0:
+            raise ValueError("REVALIDATION_PRICE_MAX_AGE_MIN must be finite and > 0")
         if self.calibration_method not in ("isotonic", "beta", "auto"):
             raise ValueError(
                 "CALIBRATION_METHOD must be isotonic, beta or auto")
@@ -515,26 +525,26 @@ class Settings:
         s.paused_markets = {str(lg): [str(m) for m in (mk or [])]
                             for lg, mk in (cfg.get("paused_markets") or {}).items()}
         if _env_flag("SHADOW_MODE") is None and "shadow_mode" in cfg:
-            s.shadow_mode = bool(cfg["shadow_mode"])
+            s.shadow_mode = _yaml_bool(cfg["shadow_mode"], "shadow_mode")
         cal = cfg.get("calibration") or {}
         # env var (if set) wins over yaml; otherwise yaml, else the dataclass default
         if _env_flag("CALIBRATION_ENABLED") is None and "enabled" in cal:
-            s.calibration_enabled = bool(cal["enabled"])
+            s.calibration_enabled = _yaml_bool(cal["enabled"], "calibration.enabled")
         if not os.getenv("CALIBRATION_METHOD") and cal.get("method"):
             s.calibration_method = str(cal["method"])
         if _env_flag("CALIBRATION_AUTO_PROMOTE") is None and "auto_promote" in cal:
-            s.calibration_auto_promote = bool(cal["auto_promote"])
+            s.calibration_auto_promote = _yaml_bool(cal["auto_promote"], "calibration.auto_promote")
         cg = cfg.get("clv_gate") or {}
         if _env_flag("CLV_GATE_ENABLED") is None and "enabled" in cg:
-            s.clv_gate_enabled = bool(cg["enabled"])
+            s.clv_gate_enabled = _yaml_bool(cg["enabled"], "clv_gate.enabled")
         if "CLV_GATE_MIN_N" not in os.environ and "min_n" in cg:
             s.clv_gate_min_n = int(cg["min_n"])
         pg = cfg.get("prediction_gate") or {}
         if _env_flag("PREDICTION_GATE_ENABLED") is None and "enabled" in pg:
-            s.prediction_gate_enabled = bool(pg["enabled"])
+            s.prediction_gate_enabled = _yaml_bool(pg["enabled"], "prediction_gate.enabled")
         dm = cfg.get("degradation_monitor") or {}
         if _env_flag("DEGRADATION_ENABLED") is None and "enabled" in dm:
-            s.degradation_enabled = bool(dm["enabled"])
+            s.degradation_enabled = _yaml_bool(dm["enabled"], "degradation_monitor.enabled")
         if "DEGRADATION_WINDOW_DAYS" not in os.environ and "window_days" in dm:
             s.degradation_window_days = int(dm["window_days"])
         if "DEGRADATION_MIN_N" not in os.environ and "min_n" in dm:
@@ -547,7 +557,7 @@ class Settings:
             s.degradation_roi_resume = float(dm["roi_resume"])
         rv = cfg.get("revalidation") or {}
         if _env_flag("REVALIDATION_ENABLED") is None and "enabled" in rv:
-            s.revalidation_enabled = bool(rv["enabled"])
+            s.revalidation_enabled = _yaml_bool(rv["enabled"], "revalidation.enabled")
         if "REVALIDATION_WINDOW_MIN" not in os.environ and "window_min" in rv:
             s.revalidation_window_min = int(rv["window_min"])
         if ("REVALIDATION_PRICE_MAX_AGE_MIN" not in os.environ
@@ -560,10 +570,10 @@ class Settings:
             s.accuracy_threshold = float(pk["accuracy_threshold"])
         isc = cfg.get("intraday_scan") or {}
         if _env_flag("INTRADAY_SCAN_ENABLED") is None and "enabled" in isc:
-            s.intraday_scan_enabled = bool(isc["enabled"])
+            s.intraday_scan_enabled = _yaml_bool(isc["enabled"], "intraday_scan.enabled")
         wt = cfg.get("weather") or {}
         if _env_flag("WEATHER_ENABLED") is None and "enabled" in wt:
-            s.weather.enabled = bool(wt["enabled"])
+            s.weather.enabled = _yaml_bool(wt["enabled"], "weather.enabled")
         # Nombre en MAYUSCULAS, como las otras doce comprobaciones vecinas
         # (auditoria integral 2026-09-10). Decia "weather_timeout_s" en
         # minuscula: en Linux/Docker/CI la condicion era SIEMPRE cierta (no
@@ -583,5 +593,5 @@ class Settings:
         if not os.getenv("BANKROLL") and "initial" in bk:
             s.bankroll = float(bk["initial"])
         if _env_flag("BANKROLL_DYNAMIC") is None and "dynamic" in bk:
-            s.bankroll_dynamic = bool(bk["dynamic"])
+            s.bankroll_dynamic = _yaml_bool(bk["dynamic"], "bankroll.dynamic")
         return s.validate()

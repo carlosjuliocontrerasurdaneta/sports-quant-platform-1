@@ -19,6 +19,7 @@ class Event:
     # proxy, the team's last observed starter). Pre-registro portero NHL, seccion 5.
     home_goalie: str | None = None
     away_goalie: str | None = None
+    neutral: bool = False
 
 
 @dataclass
@@ -37,6 +38,7 @@ class MarketLine:
 class EventOdds:
     event: Event
     lines: list[MarketLine] = field(default_factory=list)
+    captured_at: str | None = None  # UTC instant when this snapshot was acquired
 
 
 @dataclass

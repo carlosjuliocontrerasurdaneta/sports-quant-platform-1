@@ -5,8 +5,9 @@ replays the core single-league staking logic against the odds as they stood
 before each game (the last captured snapshot strictly before commence_time) and
 grades the resulting bets with the production settlement code.
 
-No lookahead: ratings are built strictly walk-forward (each game estimated
-before it is observed), and only odds snapshots dated before commence are used.
+Ratings and inputs use the best documented state before the selected quote.
+Date-only results become usable after their result-provider calendar day.
+Timestamped starts without a final time also wait 24 hours from kickoff.
 Coverage is limited to games for which historical odds were captured.
 
 This replays market-shrink, edge penalties, Kelly staking, the per-league
@@ -43,12 +44,16 @@ closing line) and never a profit guarantee.
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date, timedelta
+from copy import deepcopy
+from dataclasses import replace
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Callable, Iterable
 
 import pandas as pd
 
+from sqp.backtesting.availability import (StarterHistory, result_available_at,
+                                           result_day_start, row_starters_at, utc_instant)
 from sqp.domain.models import Event, EventOdds, MarketLine
 from sqp.logging_config import get_logger
 from sqp.markets.edge import adjusted_edge
@@ -57,7 +62,7 @@ from sqp.pipeline.daily import (_consensus_counts, _consensus_lines, _league_met
 from sqp.pipeline.probabilities import (_consensus_spread, _decision_probability,
                                         adjust_model_probability,
                                         build_adjustment_context,
-                                        build_model_map)
+                                        build_model_map, validate_book_contracts)
 from sqp.risk.kelly import edge, kelly_fraction_stake
 from sqp.settlement.runner import expected_result_date
 from sqp.settlement.settle import realized_roi_parts, settle_candidates, staked_mask
@@ -146,7 +151,7 @@ def load_closing_odds(root: Path, league: str,
         # Compare as timestamps, not strings: captured_at mixes '+00:00' and 'Z'
         # suffixes across files and lexicographic order is not temporal order
         # (audit 2026-07-24, M-30).
-        cap_ts = pd.to_datetime(g["captured_at"], utc=True, errors="coerce")
+        cap_ts = pd.to_datetime(g["captured_at"], utc=True, errors="coerce", format="mixed")
         # El proveedor CORRIGE la hora de inicio sobre la marcha, así que vale
         # la última reportada, no la de una fila arbitraria: con la obsoleta un
         # snapshot ya EN VIVO pasaba el filtro y se tomaba como cierre, con un
@@ -173,7 +178,7 @@ def load_closing_odds(root: Path, league: str,
         ev = Event(event_id=str(eid), sport_key="bt", league=league,
                    home=str(snap["home"].iloc[0]), away=str(snap["away"].iloc[0]),
                    start_time=commence, data_label="real")
-        out[str(eid)] = EventOdds(event=ev, lines=lines)
+        out[str(eid)] = EventOdds(event=ev, lines=lines, captured_at=last.isoformat())
         if captured_out is not None:
             captured_out[str(eid)] = last
     return out
@@ -415,7 +420,8 @@ def _apply_backtest_daily_cap(candidates: pd.DataFrame, bankroll: float,
 def realized_roi_backtest(results: list[dict], odds_by_id: dict[str, EventOdds],
                           league: str, family: str, league_params: dict | None,
                           risk, bankroll: float, warmup: int = 60,
-                          bet_from_date: str | None = None) -> dict:
+                          bet_from_date: str | None = None, *,
+                          starter_history: StarterHistory | None = None) -> dict:
     """Replay staking against pre-game odds and grade against final scores.
     `risk` is a RiskConfig (kelly_fraction, max_stake_pct, min_edge,
     max_plausible_edge, market_shrink).
@@ -425,12 +431,10 @@ def realized_roi_backtest(results: list[dict], odds_by_id: dict[str, EventOdds],
     This is the out-of-sample evaluation window: parameters frozen on the train
     period (date < bet_from_date) are scored only on later, unseen games.
 
-    Limitation (AUD-012): for MLB the starters come from the stored result
-    (`home_starter`/`away_starter`, the pitcher who actually started), not the
-    probable starter that was available at the prediction cutoff. Starter-based
-    parameters (e.g. pitcher_bound) are therefore evaluated with information
-    the live pipeline may not have had; re-tuning them needs the pre-cutoff
-    probable-starter log instead."""
+    MLB/NHL starters need evidence at the quote's cutoff. Pass `starter_history`
+    to look up the last prospective capture. Historical rows with explicit
+    per-starter availability are also supported. Untimed legacy EventOdds
+    retain the daily replay with a separately reported evidence count."""
     if risk.line_movement_penalty != 0 or risk.line_velocity_penalty != 0:
         raise ValueError("ROI backtest cannot apply movement/velocity penalties without historical trajectories")
     adapter = get_adapter(league, family, league_params)
@@ -473,11 +477,52 @@ def realized_roi_backtest(results: list[dict], odds_by_id: dict[str, EventOdds],
         tennis_used: set[str] = set()
     else:
         matches = match_results(results, odds_by_id, league, match_normalize)
-    # Historial walk-forward por equipo: (indice, fecha, fila) apendizados en
-    # despues de cada prediccion. Las features de ajuste de un partido
-    # solo pueden ver partidos de fechas estrictamente anteriores (via
-    # _prior_games): en produccion se computan sobre resultados ya liquidados
-    # (dias previos), nunca sobre partidos del mismo dia (dobles jornadas).
+    # Map candidate events before replaying their distinct quote times.
+    decisions: list[tuple[datetime, int, EventOdds]] = []
+    invalid_capture = legacy_capture = predates_freeze = 0
+    freeze_cutoff = result_day_start(bet_from_date, league) if bet_from_date else None
+    evidence_events = dict(matches)
+    for i, r in enumerate(results):
+        if i < warmup or (bet_from_date is not None
+                          and str(r.get("date", ""))[:10] < bet_from_date):
+            continue
+        eo = (_match_result(r, tennis_idx, tennis_used, True, match_normalize)
+              if order_insensitive else matches.get(i))
+        if eo is None:
+            continue
+        evidence_events[i] = eo
+        if eo.captured_at is None:
+            cutoff = result_day_start(r.get("date"), league)
+            legacy_capture += 1
+        else:
+            cutoff = utc_instant(eo.captured_at)
+            commence = utc_instant(eo.event.start_time)
+            if cutoff is None or commence is None or cutoff >= commence:
+                invalid_capture += 1
+                continue
+            if freeze_cutoff is not None and cutoff < freeze_cutoff:
+                # Parameters frozen at the start of the test window cannot
+                # have produced a decision at an earlier quote.
+                predates_freeze += 1
+                continue
+        if cutoff is not None:
+            decisions.append((cutoff, i, eo))
+    decisions.sort(key=lambda item: (item[0], item[1]))
+
+    availability: list[tuple[datetime, int]] = []
+    for i, r in enumerate(results):
+        available = result_available_at(r, league)
+        eo = evidence_events.get(i)
+        if available is not None and eo is not None:
+            commence = utc_instant(eo.event.start_time)
+            if commence is not None and available <= commence:
+                day = expected_result_date(league, eo.event.start_time)
+                available = None if r.get("available_at") else result_available_at({"date": day}, league)
+        if available is not None:
+            availability.append((available, i))
+    availability.sort()
+
+    # Only observed rows enter the model and the team feature history.
     team_hist: dict[str, list[tuple[int, str, dict]]] = defaultdict(list)
     _norm_cache: dict[str, str] = {}
 
@@ -492,107 +537,135 @@ def realized_roi_backtest(results: list[dict], odds_by_id: dict[str, EventOdds],
 
     cand_rows: list[dict] = []
     scores: dict[str, tuple[int, int, str]] = {}
-    n_matched = 0
-    pending: list[dict] = []
-    for i, r in enumerate(results):
-        # A start timestamp is not evidence that a final result was available.
-        # Keep adapter state frozen throughout each daily prediction batch.
-        if pending and str(r.get("date", ""))[:10] != str(pending[0].get("date", ""))[:10]:
-            for completed in pending:
-                adapter.observe(completed)
-            pending.clear()
-        in_window = bet_from_date is None or str(r.get("date", ""))[:10] >= bet_from_date
-        if i >= warmup and in_window:
-            eo = (_match_result(r, tennis_idx, tennis_used, True, match_normalize)
-                  if order_insensitive else matches.get(i))
-            if eo is not None:
-                n_matched += 1
-                ev = Event(event_id=eo.event.event_id, sport_key="bt", league=league,
-                           home=eo.event.home, away=eo.event.away,
-                           start_time=eo.event.start_time, data_label="real",
-                           home_pitcher=r.get("home_starter"), away_pitcher=r.get("away_starter"))
-                spread, total = _pick_main_lines(eo)
+    n_matched = n_skipped_warmup = n_results_day_proxy = 0
+    cursor = 0
+    observed_indices: list[int] = []
+    latest_index = -1
+    for cutoff, i, eo in decisions:
+        new_indices: list[int] = []
+        while cursor < len(availability) and availability[cursor][0] < cutoff:
+            _, idx = availability[cursor]
+            new_indices.append(idx)
+            completed = results[idx]
+            n_results_day_proxy += utc_instant(completed.get("available_at")) is None
+            hn, an = _norm(str(completed.get("home", ""))), _norm(str(completed.get("away", "")))
+            rec = (idx, str(completed.get("date", ""))[:10], completed)
+            team_hist[hn].append(rec)
+            if an != hn:
+                team_hist[an].append(rec)
+            cursor += 1
+        if new_indices:
+            new_indices.sort()
+            observed_indices.extend(new_indices)
+            if new_indices[0] < latest_index:
+                # A late final requires refitting the already available games
+                # in game order, matching production's chronological history.
+                adapter = get_adapter(league, family, league_params)
+                adapter.fit_results([results[idx] for idx in sorted(observed_indices)])
+            else:
+                for idx in new_indices:
+                    adapter.observe(results[idx])
+            latest_index = max(latest_index, new_indices[-1])
+        n_matched += 1
+        if cursor < warmup and eo.captured_at is not None:
+            n_skipped_warmup += 1
+            continue
+        r = results[i]
+        starters = row_starters_at(r, cutoff)
+        if eo.captured_at is not None:
+            for key in ("home_pitcher", "away_pitcher", "home_goalie", "away_goalie"):
+                value = getattr(eo.event, key)
+                if value is not None:
+                    starters[key] = value
+        if starter_history is not None:
+            starters.update(starter_history(r, eo.event, cutoff))
+        ev = replace(eo.event, sport_key="bt", league=league, data_label="real",
+                     home_pitcher=starters.get("home_pitcher"),
+                     away_pitcher=starters.get("away_pitcher"),
+                     home_goalie=starters.get("home_goalie"),
+                     away_goalie=starters.get("away_goalie"),
+                     neutral=(eo.event.neutral or r.get("neutral") is True))
+        eo = validate_book_contracts(eo, three_way)
+        spread, total = _pick_main_lines(eo)
+        # An estimate can apply a season transition using the event date.
+        # Quote order can differ from event order, so keep this transition
+        # local to the forecast. A completed game will update the real state.
+        elo = getattr(adapter, "elo", None)
+        if elo is not None and elo.season_regression > 0.0:
+            adapter.elo = deepcopy(elo)
+            try:
                 est = adapter.estimate(ev, spread, total)
-                if adapter.reliability_warning(ev) is not None:
-                    # Paridad con daily: fiabilidad baja = stake 0 = sin apuesta.
-                    n_skipped_unreliable += 1
-                    pending.append(r)
-                    hn, an = _norm(str(r.get("home", ""))), _norm(str(r.get("away", "")))
-                    rec = (i, str(r.get("date", ""))[:10], r)
-                    team_hist[hn].append(rec)
-                    if an != hn:
-                        team_hist[an].append(rec)
-                    continue
-                cons = _consensus_lines(eo, three_way=three_way)
-                cons_n = _consensus_counts(eo, three_way=three_way)
-                cons_spread = _consensus_spread(eo, three_way=three_way)
-                # Map final score to the odds' home/away orientation.
-                if match_normalize(r["home"]) == match_normalize(eo.event.home):
-                    hs, as_ = int(r["home_score"]), int(r["away_score"])
-                else:
-                    hs, as_ = int(r["away_score"]), int(r["home_score"])
-                scores[eo.event.event_id] = (hs, as_, eo.event.home)
-                # Capa de ajustes de produccion (AUD-MED-006): mismo helper que
-                # daily. `prior` = partidos de ambos equipos con fecha
-                # estrictamente anterior; weather=None (sin pronosticos
-                # historicos capturados, ver docstring del modulo).
-                rd = str(r.get("date", ""))[:10]
-                prior = _prior_games(team_hist, _norm(ev.home), _norm(ev.away), rd)
-                adj_ctx = build_adjustment_context(
-                    ev.home, ev.away, rd, prior, risk, _norm)
-                for key, p_model in build_model_map(est, ev, spread, total).items():
-                    price = cons.get(key)
-                    if price is None or p_model is None:
-                        continue
-                    if key[0] == "spreads":
-                        fair = _spread_novig(cons, ev.home, ev.away, spread).get(key[1])
-                    else:
-                        fair = _novig_probs(cons, key[0], key[2],
-                                            three_way=three_way,
-                                            outcomes=(ev.home, ev.away)).get(key[1])
-                    if fair is None:
-                        continue  # incomplete market: the live pipeline cannot remove vig
-                    p_adj = adjust_model_probability(
-                        p_model, key[0], key[1], key[2], ev.home, ev.away,
-                        adj_ctx, risk)
-                    _p_used, p_used = _decision_probability(
-                        p_adj, fair, risk.market_shrink, league, key[0],
-                        _NoCalibration())
-                    e = edge(p_used, price)
-                    # Same EV penalty as the live pipeline (no-op when off), so the
-                    # realized-ROI backtest replays the actual staking. Calibration
-                    # is still excluded here by design (see module docstring).
-                    adj = adjusted_edge(p_used, price, fair, cons_n.get(key),
-                                        uncertainty_penalty=risk.uncertainty_penalty,
-                                        anomaly_edge_gap=risk.anomaly_edge_gap,
-                                        anomaly_extra_penalty=risk.anomaly_extra_penalty,
-                                        low_book_penalty=risk.low_book_penalty,
-                                        min_books_for_consensus=risk.min_books_for_consensus,
-                                        books_spread=cons_spread.get(key),
-                                        books_spread_penalty=risk.books_spread_penalty,
-                                        books_spread_threshold=risk.books_spread_threshold)
-                    stake, _pct = kelly_fraction_stake(
-                        adj.effective_probability, price, bankroll, risk.kelly_fraction,
-                        risk.max_stake_pct, risk.min_edge)
-                    if stake <= 0 or e > risk.max_plausible_edge:
-                        continue  # below edge floor or flagged as implausible: not bet
-                    side = key[1] if key[0] == "totals" else (
-                        "home" if key[1] == ev.home else "away")
-                    cand_rows.append({
-                        "league": league, "date": str(r.get("date", ""))[:10],
-                        "event_id": eo.event.event_id, "home": ev.home, "away": ev.away,
-                        "market": key[0], "selection": key[1], "side": side,
-                        "line": key[2], "price_decimal": price,
-                        "stake": stake, "estimated_edge": round(e, 4),
-                        "estimated_probability": round(p_used, 4)})
-        pending.append(r)
-        # El historial puede acumular filas del dia, pero _prior_games filtra
-        # estrictamente fechas anteriores, igual que el estado del adaptador.
-        hn, an = _norm(str(r.get("home", ""))), _norm(str(r.get("away", "")))
-        rec = (i, str(r.get("date", ""))[:10], r)
-        team_hist[hn].append(rec)
-        if an != hn:
-            team_hist[an].append(rec)
+            finally:
+                adapter.elo = elo
+        else:
+            est = adapter.estimate(ev, spread, total)
+        if adapter.reliability_warning(ev) is not None:
+            # Paridad con daily: fiabilidad baja = stake 0 = sin apuesta.
+            n_skipped_unreliable += 1
+            continue
+        cons = _consensus_lines(eo, three_way=three_way)
+        cons_n = _consensus_counts(eo, three_way=three_way)
+        cons_spread = _consensus_spread(eo, three_way=three_way)
+        # Map final score to the odds' home/away orientation.
+        if match_normalize(r["home"]) == match_normalize(eo.event.home):
+            hs, as_ = int(r["home_score"]), int(r["away_score"])
+        else:
+            hs, as_ = int(r["away_score"]), int(r["home_score"])
+        scores[eo.event.event_id] = (hs, as_, eo.event.home)
+        # Capa de ajustes de produccion (AUD-MED-006): mismo helper que
+        # daily. `prior` = partidos de ambos equipos con fecha
+        # estrictamente anterior; weather=None (sin pronosticos
+        # historicos capturados, ver docstring del modulo).
+        rd = str(r.get("date", ""))[:10]
+        prior = _prior_games(team_hist, _norm(ev.home), _norm(ev.away), rd)
+        adj_ctx = build_adjustment_context(
+            ev.home, ev.away, rd, prior, risk, _norm)
+        for key, p_model in build_model_map(est, ev, spread, total).items():
+            price = cons.get(key)
+            if price is None or p_model is None:
+                continue
+            if key[0] == "spreads":
+                fair = _spread_novig(cons, ev.home, ev.away, spread).get(key[1])
+            else:
+                fair = _novig_probs(cons, key[0], key[2],
+                                    three_way=three_way,
+                                    outcomes=(ev.home, ev.away)).get(key[1])
+            if fair is None:
+                continue  # incomplete market: the live pipeline cannot remove vig
+            p_adj = adjust_model_probability(
+                p_model, key[0], key[1], key[2], ev.home, ev.away,
+                adj_ctx, risk)
+            _p_used, p_used = _decision_probability(
+                p_adj, fair, risk.market_shrink, league, key[0],
+                _NoCalibration())
+            e = edge(p_used, price)
+            # Same EV penalty as the live pipeline (no-op when off), so the
+            # realized-ROI backtest replays the actual staking. Calibration
+            # is still excluded here by design (see module docstring).
+            adj = adjusted_edge(p_used, price, fair, cons_n.get(key),
+                                uncertainty_penalty=risk.uncertainty_penalty,
+                                anomaly_edge_gap=risk.anomaly_edge_gap,
+                                anomaly_extra_penalty=risk.anomaly_extra_penalty,
+                                low_book_penalty=risk.low_book_penalty,
+                                min_books_for_consensus=risk.min_books_for_consensus,
+                                books_spread=cons_spread.get(key),
+                                books_spread_penalty=risk.books_spread_penalty,
+                                books_spread_threshold=risk.books_spread_threshold)
+            stake, _pct = kelly_fraction_stake(
+                adj.effective_probability, price, bankroll, risk.kelly_fraction,
+                risk.max_stake_pct, risk.min_edge)
+            if stake <= 0 or e > risk.max_plausible_edge:
+                continue  # below edge floor or flagged as implausible: not bet
+            side = key[1] if key[0] == "totals" else (
+                "home" if key[1] == ev.home else "away")
+            cand_rows.append({
+                "league": league, "date": str(r.get("date", ""))[:10],
+                "event_id": eo.event.event_id, "home": ev.home, "away": ev.away,
+                "market": key[0], "selection": key[1], "side": side,
+            "captured_at": eo.captured_at, "decision_cutoff": cutoff.isoformat(),
+                "line": key[2], "price_decimal": price,
+                "stake": stake, "estimated_edge": round(e, 4),
+                "estimated_probability": round(p_used, 4)})
     cands = pd.DataFrame(cand_rows)
     if not cands.empty:
         cands = _apply_backtest_daily_cap(
@@ -601,6 +674,11 @@ def realized_roi_backtest(results: list[dict], odds_by_id: dict[str, EventOdds],
                if not cands.empty else pd.DataFrame())
     out = _summarize(league, settled, n_matched)
     out["n_skipped_unreliable"] = n_skipped_unreliable
+    out["n_events_legacy_capture"] = legacy_capture
+    out["n_events_invalid_capture"] = invalid_capture
+    out["n_events_capture_before_freeze"] = predates_freeze
+    out["n_events_skipped_warmup_at_cutoff"] = n_skipped_warmup
+    out["n_results_observed_day_proxy"] = n_results_day_proxy
     out["parity"] = dict(PARITY)
     out["settled"] = settled  # per-bet detail (team, side, result) for history/audit
     return out

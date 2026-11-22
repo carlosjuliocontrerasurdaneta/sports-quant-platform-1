@@ -8,6 +8,7 @@ out-of-sample dataset for realized-ROI and CLV validation (plan block A).
 from __future__ import annotations
 import csv
 import io
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 import pandas as pd
@@ -63,7 +64,9 @@ class OddsStore:
             df = _drop_already_stored(df, p, captured_at)
             if df.empty:
                 return 0
-            if p.exists() and _header(p) != COLUMNS:
+            if not p.exists() or p.stat().st_size == 0:
+                atomic_write_csv(df, p)
+            elif _header(p) != COLUMNS:
                 prior = pd.read_csv(p)
                 cols = list(prior.columns) + [c for c in COLUMNS if c not in prior.columns]
                 combined = pd.concat([prior.reindex(columns=cols), df.reindex(columns=cols)],
@@ -74,30 +77,35 @@ class OddsStore:
                 # pagar cuota de API.
                 atomic_write_csv(combined, p)
             else:
-                df.to_csv(p, mode="a", header=not p.exists(), index=False)
+                with p.open("a", encoding="utf-8", newline="") as fh:
+                    df.to_csv(fh, header=False, index=False)
+                    fh.flush()
+                    os.fsync(fh.fileno())
         return len(df)
 
 
-_TAIL_BYTES = 262144
+_SCAN_BYTES = 1024 * 1024
 
 
 def _drop_already_stored(df: pd.DataFrame, p: Path, captured_at: str) -> pd.DataFrame:
     """Quita de ``df`` las filas ya presentes en ``p`` con el mismo
     ``captured_at`` (idempotencia de ``append_snapshot``, AUD-016).
 
-    Los snapshots se anexan en orden, asi que una captura repetida deja su
-    ``captured_at`` en la cola del fichero: se mira solo la cola (barato) y solo
-    si aparece se lee el fichero por bloques para comparar. Comparacion exacta
-    sobre el texto de las columnas (sin parsear numeros)."""
+    Una captura recuperada o historica puede llegar fuera de orden. Se busca
+    el sello en todo el fichero por bloques de bytes antes de pagar una lectura
+    CSV, y se comparan las filas exactas solo cuando aparece."""
     if df.empty or not p.exists():
         return df
+    needle = captured_at.encode("utf-8")
     with p.open("rb") as fh:
-        fh.seek(0, 2)
-        size = fh.tell()
-        fh.seek(max(0, size - _TAIL_BYTES))
-        tail = fh.read().decode("utf-8", errors="ignore")
-    if captured_at not in tail:
-        return df
+        overlap = b""
+        while block := fh.read(_SCAN_BYTES):
+            window = overlap + block
+            if needle in window:
+                break
+            overlap = window[-(len(needle) - 1):]
+        else:
+            return df
     texto = pd.read_csv(io.StringIO(df.to_csv(index=False)), dtype=str,
                         keep_default_na=False)
     vistos: set[tuple[str, ...]] = set()

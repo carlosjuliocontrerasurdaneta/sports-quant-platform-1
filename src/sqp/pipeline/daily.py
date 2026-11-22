@@ -24,7 +24,7 @@ from sqp.pipeline.probabilities import (_consensus_lines, _consensus_counts,
                                         _pick_main_lines, _decision_probability,
                                         adjust_model_probability,
                                         build_adjustment_context,
-                                        build_model_map)
+                                        build_model_map, validate_book_contracts)
 from sqp.providers.odds_api import OddsAPIClient, SPORT_KEYS
 from sqp.providers.synthetic import SyntheticProvider
 from sqp.risk.clv_gate import load_clv_gate, market_allowed
@@ -244,13 +244,14 @@ def _possible_local_days(stamp: str) -> tuple[str, ...]:
     return tuple((lo + timedelta(days=i)).isoformat() for i in range((hi - lo).days + 1))
 
 
-def _within_horizon(events: list[EventOdds], max_days: int) -> list[EventOdds]:
+def _within_horizon(events: list[EventOdds], max_days: int, *,
+                    as_of: datetime | None = None) -> list[EventOdds]:
     """Keep only events commencing within `max_days`.
     Drops next-season opener lines posted months early (e.g. NFL in June).
     Unparsable start times are kept (conservative: never silently drop an event)."""
     if not max_days or max_days <= 0:
         return events
-    cutoff = datetime.now(timezone.utc) + timedelta(days=max_days)
+    cutoff = (as_of or datetime.now(timezone.utc)) + timedelta(days=max_days)
     out = []
     for eo in events:
         dt = _parse_iso_utc(str(eo.event.start_time))
@@ -869,7 +870,8 @@ def run_league(league: str, settings: Settings, mode: str | None = None, *,
                                      avg_total=adapter.params.get("avg_total"))
         log.info("[%s] DEMO mode: synthetic data, labeled demo_synthetic.", league)
     else:
-        client = OddsAPIClient(settings.odds_api_key, settings.regions, settings.odds_format)
+        client = OddsAPIClient(settings.odds_api_key, settings.regions, settings.odds_format,
+                               track_snapshots=True)
         # getattr: un cliente inyectado en tests puede no tener el concepto de
         # cache, y entonces no hay nada que acotar (misma convencion que el
         # `getattr(r, "status_code")` de odds_api ante sesiones falsas).
@@ -936,41 +938,51 @@ def run_league(league: str, settings: Settings, mode: str | None = None, *,
                         "picks pero NINGUNO llevara stake (flag cuota_vencida).",
                         league, _edad / 60.0, _tope / 60.0)
         n_fetched = len(events)
-        events = _within_horizon(events, settings.event_horizon_days)
+        acquired_at = getattr(client, "last_response_captured_at", None)
+        events = _within_horizon(events, settings.event_horizon_days,
+                                 as_of=_parse_iso_utc(acquired_at) if acquired_at else None)
         if len(events) < n_fetched:
             log.info("[%s] %d of %d events dropped as beyond the %d-day horizon "
                      "(e.g. next-season opener lines).",
                      league, n_fetched - len(events), n_fetched, settings.event_horizon_days)
-        # Marca de snapshot pendiente (auditoria 2026-10-15, AUD-012): un cache
-        # hit no prueba que el snapshot de la peticion original llegara a disco.
-        # Si `append_snapshot` fallo (o el proceso murio) tras la respuesta de
-        # red, el reintento dentro del TTL lo recupera con su instante REAL de
-        # adquisicion en vez de anunciar "already persisted" sin comprobarlo.
-        # `getattr`: los clientes dobles de los tests no tienen la marca.
+        # La adquisición y su marca se publican juntas en el cliente. El
+        # diario permite recuperar capturas aunque otra petición las haya
+        # sustituido como entrada principal de la caché.
+        _older_pending = getattr(client, "pending_odds_snapshots", None)
+        if _older_pending:
+            for snapshot_id, stamp, pending_events in _older_pending(league, meta["sport_key"]):
+                pending_events = _within_horizon(pending_events, settings.event_horizon_days,
+                                                 as_of=_parse_iso_utc(stamp))
+                n_lines = OddsStore(ROOT).append_snapshot(league, pending_events, captured_at=stamp)
+                client.acknowledge_snapshot(snapshot_id)
+                log.info("[%s] recuperadas %d líneas de la captura pendiente %s.",
+                         league, n_lines, stamp)
         _marcar = getattr(client, "mark_snapshot_pending", None)
         _limpiar = getattr(client, "clear_snapshot_pending", None)
         _pendiente = getattr(client, "snapshot_pending", None)
         if events and not client.last_response_cached:
             if _marcar:
                 _marcar()
-            n_lines = OddsStore(ROOT).append_snapshot(league, events)
+            n_lines = OddsStore(ROOT).append_snapshot(league, events, captured_at=acquired_at)
             if _limpiar:
                 _limpiar()
             log.info("[%s] odds snapshot persisted: %d lines from %d events "
                      "(forward out-of-sample dataset).", league, n_lines, len(events))
         elif events and _pendiente and _pendiente() is True:
-            adquirido = (datetime.now(timezone.utc)
-                         - timedelta(seconds=float(client.last_response_age_s or 0.0)))
+            stamp = acquired_at or (datetime.now(timezone.utc)
+                                    - timedelta(seconds=_edad)).isoformat(timespec="seconds")
             n_lines = OddsStore(ROOT).append_snapshot(
-                league, events, captured_at=adquirido.isoformat(timespec="seconds"))
+                league, events, captured_at=stamp)
             if _limpiar:
                 _limpiar()
             log.warning("[%s] odds served from cache whose snapshot never reached "
                         "disk: recovered %d lines with the original acquisition "
-                        "time %s.", league, n_lines, adquirido.isoformat(timespec="seconds"))
+                        "time %s.", league, n_lines, stamp)
         elif events:
             log.info("[%s] odds served from cache; snapshot already persisted on "
                      "the originating fetch, not re-appending.", league)
+        elif _limpiar:
+            _limpiar()  # respuesta válida sin líneas elegibles para este horizonte
         if family == "baseball" and events:
             _attach_probable_pitchers(events, league, adapter.normalize)
 
@@ -1021,7 +1033,8 @@ def run_league(league: str, settings: Settings, mode: str | None = None, *,
     # jugado. Solo lo implementan los adaptadores con modelo de descanso.
     if hasattr(adapter, "schedule"):
         adapter.schedule([eo.event for eo in events])
-    for eo in events:
+    for raw_odds in events:
+        eo = validate_book_contracts(raw_odds, three_way)
         spread, total = _pick_main_lines(eo)
         est = adapter.estimate(eo.event, spread, total)
         warn = adapter.reliability_warning(eo.event)
@@ -1056,6 +1069,7 @@ def run_league(league: str, settings: Settings, mode: str | None = None, *,
                                 outcomes=_h2h_sides)
         row = {"league": league, "event_id": eo.event.event_id, "home": eo.event.home,
                "away": eo.event.away, "start_time": eo.event.start_time,
+               "neutral": eo.event.neutral,
                # abridores del MOMENTO DEL PICK (None fuera de beisbol): linea
                # base del guard de cambio de abridor en la revalidacion horaria
                "home_pitcher": eo.event.home_pitcher,

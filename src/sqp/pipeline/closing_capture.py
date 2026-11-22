@@ -195,7 +195,11 @@ def capture_closing(predictions_dir: Path, settings, *, window_min: int = 120,
                 want = set(bet_ids)
                 n_bets = sum(1 for eo in events
                              if str(eo.event.event_id) in want)
-                n = odds_store.append_snapshot(league, events)
+                acquired_at = getattr(client, "last_response_captured_at", None)
+                if isinstance(acquired_at, str):
+                    n = odds_store.append_snapshot(league, events, captured_at=acquired_at)
+                else:
+                    n = odds_store.append_snapshot(league, events)
                 summary["captured"][league] = n
                 summary["bet_events"][league] = n_bets
                 log.info("closing: [%s] %d lines snapshotted from %d events "

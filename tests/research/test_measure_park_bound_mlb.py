@@ -38,6 +38,14 @@ SYN_FOLDS = {"A": {"train_end": "2024-05-10", "test_start": "2024-05-11", "test_
              "B": {"train_end": "2024-05-31", "test_start": "2024-06-01", "test_end": "2024-06-20"},
              "C": {"train_end": "2024-06-20", "test_start": "2024-06-21", "test_end": "2024-07-09"}}
 SYN_CUTOFF = "2024-12-31"
+# Pre-registro §5.2. El experimento de 2026 y la operación actual son dos
+# regímenes distintos. Las pruebas sintéticas reproducen el primero.
+FROZEN_LEAGUE_PARAMS = {
+    "park_bound": 0.10,
+    "pitcher_bound": 0.05,
+    "pitcher_prior_starts": 5.0,
+    "tilt_scale": 0.4,
+}
 
 
 def _load_module():
@@ -48,9 +56,14 @@ def _load_module():
     return mod
 
 
-@pytest.fixture(scope="module")
-def mod():
-    return _load_module()
+@pytest.fixture()
+def mod(monkeypatch):
+    module = _load_module()
+    monkeypatch.setattr(
+        module, "_league_meta",
+        lambda league: {"family": "baseball", "league_params": dict(FROZEN_LEAGUE_PARAMS)},
+    )
+    return module
 
 
 @pytest.fixture()
@@ -129,7 +142,7 @@ def test_constants_are_the_preregistered_ones(mod):
 
 
 def test_resolved_params_match_the_base_and_abort_otherwise(mod):
-    lp, ap = mod.assert_family_and_params()           # configuracion real del repo
+    lp, ap = mod.assert_family_and_params()
     assert lp["park_bound"] == 0.1 and ap["park_bound"] == 0.1
     with pytest.raises(SystemExit):
         mod.assert_resolved_params({**lp, "park_bound": 0.2}, ap)
@@ -140,6 +153,16 @@ def test_resolved_params_match_the_base_and_abort_otherwise(mod):
     mod.assert_resolved_params(lp, {**ap, "scoring_half_life_days": 0})     # 0 == ausente
     with pytest.raises(SystemExit):
         mod.assert_resolved_params(lp, {**ap, "scoring_half_life_days": 90.0})
+
+
+def test_live_regime_is_not_the_historical_experiment_config():
+    from sqp.pipeline.daily import _league_meta
+
+    params = _league_meta("mlb")["league_params"]
+    assert params["park_bound"] == 0.0
+    module = _load_module()
+    with pytest.raises(SystemExit, match="enmienda de base"):
+        module.assert_family_and_params()
 
 
 # --------------------------------------------- (1) paridad con el motor (real) --

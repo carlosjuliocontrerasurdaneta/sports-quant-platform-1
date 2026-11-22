@@ -1,0 +1,5 @@
+include configs/default.yaml
+include configs/venues.yaml
+include configs/leagues/ratings.yaml
+include configs/leagues/soccer.yaml
+include configs/leagues/team_aliases.yaml

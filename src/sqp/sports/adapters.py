@@ -58,7 +58,7 @@ class NormalMarginAdapter(SportAdapter):
             self.rest.schedule(ev.home, ev.away, str(ev.start_time)[:10])
 
     def estimate(self, event, spread_line, total_line) -> EstimatedProbabilities:
-        diff = self.elo.rating_diff(event.home, event.away)
+        diff = self.elo.rating_diff(event.home, event.away, event.neutral)
         mu_margin = dist.elo_diff_to_margin(diff, self.params["points_per_elo"])
         # Rest differential nudges the home margin (back-to-backs underperform).
         mu_margin += self.rest.margin_adjustment(event.home, event.away,
@@ -130,15 +130,16 @@ class PoissonAdapter(SportAdapter):
         # rest_elo_per_day == 0.0 this is bit-identical to the previous
         # `self.elo.expected_home_win(event.home, event.away)` call (adding
         # 0.0 is a no-op in IEEE-754 for any finite diff).
-        diff = self.elo.rating_diff(event.home, event.away) + self.rest.margin_adjustment(
-            event.home, event.away, str(event.start_time)[:10])
+        diff = self.elo.rating_diff(event.home, event.away, event.neutral)
+        diff += self.rest.margin_adjustment(event.home, event.away, str(event.start_time)[:10])
         p_home = 1.0 / (1.0 + 10 ** (-diff / 400.0))
         avg = self.params["avg_total"]
         if self.params.get("scoring_totals", True):
             avg = self.scoring.expected_total(event.home, event.away, avg)
         # tilt: shift scoring share toward the favorite, bounded.
         tilt = max(-0.30, min(0.30, (p_home - 0.5) * self.params.get("tilt_scale", 0.9)))
-        lam_home = avg * (0.5 + tilt) + self.params.get("home_scoring_bonus", 0.0)
+        home_bonus = 0.0 if event.neutral else self.params.get("home_scoring_bonus", 0.0)
+        lam_home = avg * (0.5 + tilt) + home_bonus
         lam_away = avg * (0.5 - tilt)
         return max(0.1, lam_home), max(0.1, lam_away)
 

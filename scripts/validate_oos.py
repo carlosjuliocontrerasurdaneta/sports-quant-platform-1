@@ -36,6 +36,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from sqp.backtesting.availability import load_starter_history, result_available_at, result_day_start
 from sqp.backtesting.engine import walk_forward_backtest
 from sqp.backtesting.tuning import temporal_cutoff
 from sqp.backtesting.roi_engine import (discover_leagues_with_odds,
@@ -113,9 +114,13 @@ def _freeze_on_train(train: list[dict], league: str, family: str, three_way: boo
 def _run(label: str, results, odds, league, family, params, settings, warmup, cutoff):
     res = realized_roi_backtest(results, odds, league, family, params,
                                 risk=settings.risk, bankroll=settings.bankroll,
-                                warmup=warmup, bet_from_date=cutoff)
+                                warmup=warmup, bet_from_date=cutoff,
+                                starter_history=load_starter_history(ROOT, league))
     print(f"\n--- {label} | params={params} ---")
     print(f"test events matched: {res['n_events_matched']} | bets: {res['n_bets']}")
+    print(f"resultados incorporados sin hora de disponibilidad: {res.get('n_results_observed_day_proxy', 0)} | "
+          f"capturas inválidas: {res.get('n_events_invalid_capture', 0)} | "
+          f"capturas anteriores al corte: {res.get('n_events_capture_before_freeze', 0)}")
     if res["n_bets"]:
         print(f"graded: {res['n_graded']} | staked: {res['staked']} | pnl: {res['pnl']} | "
               f"REALIZED ROI (test): {res['realized_roi']:.2%} | "
@@ -159,14 +164,14 @@ def main() -> int:
     errores: list[str] = []
 
     for league in leagues:
-        odds = load_closing_odds(ROOT, league)
-        if not odds:
-            log.warning("[%s] sin cuotas de cierre capturadas; nada que validar "
-                        "(corre scripts/backfill_historical_odds.py si deberia "
-                        "haberlas).", league)
-            sin_cierre.append(league)
-            continue
         try:
+            odds = load_closing_odds(ROOT, league)
+            if not odds:
+                log.warning("[%s] sin cuotas de cierre capturadas; nada que validar "
+                            "(corre scripts/backfill_historical_odds.py si deberia "
+                            "haberlas).", league)
+                sin_cierre.append(league)
+                continue
             if not _validar_liga(league, odds, settings, args):
                 sin_datos.append(league)
         except Exception as exc:
@@ -198,9 +203,8 @@ def main() -> int:
     # liga sin backfill seria una alarma que suena cuando no pasa nada, y esas se
     # aprenden a ignorar -- que es exactamente como el CI llego a 75 runs en rojo.
     #
-    # Un fallo REAL sigue saliendo con 1: una excepcion no capturada propaga y
-    # `SystemExit(main())` la convierte en codigo distinto de cero. Lo que se
-    # elimina es el 1 FABRICADO por una condicion normal.
+    # Un fallo real se registra por liga y el resumen devuelve 1, después de
+    # terminar la validación de las demás ligas.
     return 0
 
 
@@ -253,8 +257,12 @@ def _validar_liga(league: str, odds: dict, settings, args) -> bool:
         return False
 
     cutoff = _cutoff(results, args.test_frac, args.test_start)
-    train = [r for r in results if str(r.get("date", ""))[:10] < cutoff]
-    n_test = len(results) - len(train)
+    freeze_at = result_day_start(cutoff, league)
+    assert freeze_at is not None
+    train = [r for r in results if str(r.get("date", ""))[:10] < cutoff
+             and (available := result_available_at(r, league)) is not None
+             and available < freeze_at]
+    n_test = sum(str(r.get("date", ""))[:10] >= cutoff for r in results)
     print(f"\n========== {league.upper()} OOS validation ==========")
     print(f"cutoff: {cutoff} | train games: {len(train)} | test games: {n_test} | "
           f"odds events: {len(odds)}")

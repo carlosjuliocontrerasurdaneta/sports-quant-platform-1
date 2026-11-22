@@ -77,3 +77,21 @@ def test_no_warning_when_env_is_absent(monkeypatch, caplog):
     with caplog.at_level("WARNING"):
         Settings.load()
     assert "KELLY_FRACTION" not in caplog.text
+
+
+@pytest.mark.parametrize("value", ["nan", "inf", "-inf"])
+def test_plausibility_ceiling_must_be_finite(monkeypatch, value):
+    monkeypatch.setenv("MAX_PLAUSIBLE_EDGE", value)
+    with pytest.raises(ValueError, match="MAX_PLAUSIBLE_EDGE must be finite"):
+        Settings.load()
+
+
+def test_quoted_calibration_flag_is_rejected(tmp_path, monkeypatch):
+    from sqp import config
+
+    (tmp_path / "default.yaml").write_text(
+        'calibration:\n  auto_promote: "false"\n', encoding="utf-8")
+    monkeypatch.setattr(config, "CONFIG_DIR", tmp_path)
+    monkeypatch.delenv("CALIBRATION_AUTO_PROMOTE", raising=False)
+    with pytest.raises(ValueError, match="calibration.auto_promote must be a YAML boolean"):
+        Settings.load()

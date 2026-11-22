@@ -81,11 +81,17 @@ def _grade(row: pd.Series, hs: int, as_: int, home: str,
         # la de `markets.settlement_math.split_asian_line`, que ya existia
         # como API de investigacion sin llegar al ledger.
         if is_quarter_line(line):
-            lo, hi = split_asian_line(line)
-            return _combinar_medias(_grade_linea(m, sel, sel_is_home, margin, total, lo),
-                                    _grade_linea(m, sel, sel_is_home, margin, total, hi))
+            return grade_asian_line(m, sel, sel_is_home, margin, total, line)
         return _grade_linea(m, sel, sel_is_home, margin, total, line)
     return "void"
+
+
+def grade_asian_line(market: str, selection: str, is_home: bool, margin: int,
+                     total: int, line: float) -> str:
+    """Grade both halves of the same Asian quarter-line stake."""
+    lo, hi = split_asian_line(line)
+    return _combinar_medias(_grade_linea(market, selection, is_home, margin, total, lo),
+                            _grade_linea(market, selection, is_home, margin, total, hi))
 
 
 def _grade_linea(m: str, sel: str, sel_is_home: bool, margin: int, total: int,

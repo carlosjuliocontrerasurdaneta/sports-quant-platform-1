@@ -14,6 +14,7 @@ REM Usar ESTE bat en el programador de tareas en vez de los dos por separado.
 setlocal
 cd /d %~dp0
 REM Mismo interprete fijo que los BAT que encadena (auditoria 2026-07-24, M-5).
+if not defined SQP_PYTHON if exist "%~dp0.venv\Scripts\python.exe" set "SQP_PYTHON=%~dp0.venv\Scripts\python.exe"
 if not defined SQP_PYTHON set "SQP_PYTHON=C:\Users\Richard\AppData\Local\Programs\Python\Python314\python.exe"
 if not exist "%SQP_PYTHON%" echo [AVISO] SQP_PYTHON no existe en la ruta fijada; se cae a "python" del PATH, que puede ser otra version y sin las dependencias pineadas de requirements.lock.
 if not exist "%SQP_PYTHON%" set "SQP_PYTHON=python"
@@ -58,6 +59,7 @@ REM aprende a saltarse un guard.
 REM
 REM Escape para recuperacion manual:  set SQP_SKIP_TREE_GUARD=1
 set "SQP_TREE_DIRTY="
+set "SQP_GUARDED_HEAD="
 if defined SQP_SKIP_TREE_GUARD (
     call :log "[AVISO] SQP_SKIP_TREE_GUARD activo: se OMITE el guard de arbol limpio."
     goto :tree_ok
@@ -93,6 +95,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\wait_for_clean
 if %ERRORLEVEL% neq 0 goto :error_arbol
 call :log "[0a] Arbol limpio tras la espera: se continua."
 :tree_clean
+for /f "delims=" %%i in ('git rev-parse HEAD 2^>nul') do set "SQP_GUARDED_HEAD=%%i"
 
 REM [0b] ARBOL ATRASADO (AUD-MED-004, auditoria integral 2026-09-08).
 REM
@@ -205,6 +208,8 @@ if not defined SQP_NET_WAIT_HOST set "SQP_NET_WAIT_HOST=api.the-odds-api.com"
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\wait_for_network.ps1" -MaxMinutes %SQP_NET_WAIT_MAX_MIN% -IntervalSeconds %SQP_NET_WAIT_INTERVAL_S% -HostName %SQP_NET_WAIT_HOST% >> logs\diario_completo.log 2>&1
 if %ERRORLEVEL% neq 0 goto :error_red
 :net_ok
+call :verify_revision
+if errorlevel 1 goto :error_revision
 
 REM [0.5/3] HISTORICO FRESCO ANTES DE LIQUIDAR (2026-09-25, AUD-003/KI-059).
 REM La liquidacion solo gradua desde data\historical\ lo que ya este ahi, y un
@@ -229,6 +234,8 @@ if %ERRORLEVEL% neq 0 call :log "[AVISO] el refresco de abridores MLB fallo (ver
 if %ERRORLEVEL% neq 0 call :log "[AVISO] el refresco del historico de tenis fallo (ver logs\backfill_diario.log); se liquida con el historico existente."
 
 call :log "[1/3] Liquidando picks del dia anterior..."
+call :verify_revision
+if errorlevel 1 goto :error_revision
 call "%~dp0SETTLE_ALL.bat"
 if %ERRORLEVEL% neq 0 goto :error_settle
 REM Porteros probables NHL (2026-09-26, pre-registro del portero NHL): captura
@@ -239,6 +246,8 @@ REM toca probabilidades ni picks. No bloqueante. Revision Fable: ubicacion aqui.
 if %ERRORLEVEL% neq 0 call :log "[AVISO] la captura de porteros probables NHL fallo (ver logs\backfill_diario.log); no bloqueante."
 
 call :log "[2/3] Ejecutando run diario multi-liga..."
+call :verify_revision
+if errorlevel 1 goto :error_revision
 call "%~dp0RUN_DIARIO_ALL.bat"
 if %ERRORLEVEL% neq 0 goto :error_run
 
@@ -364,6 +373,16 @@ REM 2026-09-19. Stake 0: no produce picks. Best-effort, como todo :lista.
 if %ERRORLEVEL% neq 0 echo [AVISO] collect_team_totals_mlb.py fallo (no bloqueante) >> logs\run_diario.log
 goto :eof
 
+:verify_revision
+if not defined SQP_GUARDED_HEAD exit /b 0
+set "SQP_CHECKED_HEAD="
+for /f "delims=" %%i in ('git rev-parse HEAD 2^>nul') do set "SQP_CHECKED_HEAD=%%i"
+if not "%SQP_CHECKED_HEAD%"=="%SQP_GUARDED_HEAD%" exit /b 1
+set "SQP_TREE_CHANGED="
+for /f "delims=" %%i in ('git status --porcelain -- src scripts configs *.bat 2^>nul') do set "SQP_TREE_CHANGED=1"
+if defined SQP_TREE_CHANGED exit /b 1
+exit /b 0
+
 :error_arbol
 call :log "*** ABORTADO ANTES DE LIQUIDAR: hay cambios SIN COMMITEAR en codigo que  ***"
 call :log "*** produccion ejecuta (src\, scripts\, configs\ o *.bat).               ***"
@@ -373,6 +392,15 @@ call :log "*** Si de verdad hace falta correr sobre el arbol sucio (recuperacion
 call :log "***     set SQP_SKIP_TREE_GUARD=1                                        ***"
 git status --porcelain -- src scripts configs *.bat >> logs\diario_completo.log 2>&1
 git status --porcelain -- src scripts configs *.bat
+"%SQP_PYTHON%" scripts\run_status.py --fail --stage guard_arbol --exit-code 1 >> logs\diario_completo.log 2>&1
+call :salud
+endlocal
+exit /b 1
+
+:error_revision
+call :log "*** DETENIDO: cambio el HEAD o el arbol de ejecucion entre etapas. ***"
+call :log "*** HEAD esperado: %SQP_GUARDED_HEAD%. HEAD observado: %SQP_CHECKED_HEAD%. ***"
+git status --porcelain -- src scripts configs *.bat >> logs\diario_completo.log 2>&1
 "%SQP_PYTHON%" scripts\run_status.py --fail --stage guard_arbol --exit-code 1 >> logs\diario_completo.log 2>&1
 call :salud
 endlocal

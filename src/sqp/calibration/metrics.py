@@ -6,18 +6,18 @@ import numpy as np
 import pandas as pd
 
 
-def brier_score(probs, outcomes) -> float:
+def brier_score(probs, outcomes, *, sample_weight=None) -> float:
     p, y = np.asarray(probs, float), np.asarray(outcomes, float)
-    return float(np.mean((p - y) ** 2))
+    return float(np.average((p - y) ** 2, weights=sample_weight))
 
 
-def log_loss(probs, outcomes, eps: float = 1e-12) -> float:
+def log_loss(probs, outcomes, eps: float = 1e-12, *, sample_weight=None) -> float:
     p = np.clip(np.asarray(probs, float), eps, 1 - eps)
     y = np.asarray(outcomes, float)
-    return float(-np.mean(y * np.log(p) + (1 - y) * np.log(1 - p)))
+    return float(-np.average(y * np.log(p) + (1 - y) * np.log(1 - p), weights=sample_weight))
 
 
-def reliability_table(probs, outcomes, n_bins: int = 10) -> pd.DataFrame:
+def reliability_table(probs, outcomes, n_bins: int = 10, *, sample_weight=None) -> pd.DataFrame:
     """Tabla de fiabilidad por bin. Descarta los pares no finitos.
 
     `np.digitize(nan, bins)` devuelve `n_bins + 1`, que tras el `-1` y el `clip`
@@ -30,9 +30,12 @@ def reliability_table(probs, outcomes, n_bins: int = 10) -> pd.DataFrame:
     de entrenamiento, no.
     """
     p, y = np.asarray(probs, float), np.asarray(outcomes, float)
+    weights = None if sample_weight is None else np.asarray(sample_weight, float)
     finite = np.isfinite(p) & np.isfinite(y)
     if not finite.all():
         p, y = p[finite], y[finite]
+        if weights is not None:
+            weights = weights[finite]
     bins = np.linspace(0, 1, n_bins + 1)
     idx = np.clip(np.digitize(p, bins) - 1, 0, n_bins - 1)
     rows = []
@@ -40,20 +43,27 @@ def reliability_table(probs, outcomes, n_bins: int = 10) -> pd.DataFrame:
         mask = idx == b
         if mask.sum() == 0:
             continue
-        rows.append({
+        w = None if weights is None else weights[mask]
+        if w is not None and w.sum() <= 0:
+            continue
+        row = {
             "bin_low": bins[b], "bin_high": bins[b + 1], "n": int(mask.sum()),
-            "mean_estimated_probability": float(p[mask].mean()),
-            "observed_frequency": float(y[mask].mean()),
-        })
+            "mean_estimated_probability": float(np.average(p[mask], weights=w)),
+            "observed_frequency": float(np.average(y[mask], weights=w)),
+        }
+        if w is not None:
+            row["weight"] = float(w.sum())
+        rows.append(row)
     return pd.DataFrame(rows)
 
 
-def expected_calibration_error(probs, outcomes, n_bins: int = 10) -> float:
-    tbl = reliability_table(probs, outcomes, n_bins)
+def expected_calibration_error(probs, outcomes, n_bins: int = 10, *, sample_weight=None) -> float:
+    tbl = reliability_table(probs, outcomes, n_bins, sample_weight=sample_weight)
     if tbl.empty:
         return float("nan")
-    n = tbl["n"].sum()
-    return float((tbl["n"] / n * (tbl["mean_estimated_probability"] - tbl["observed_frequency"]).abs()).sum())
+    weights = tbl["n"] if sample_weight is None else tbl["weight"]
+    gap = (tbl["mean_estimated_probability"] - tbl["observed_frequency"]).abs()
+    return float((weights / weights.sum() * gap).sum())
 
 
 def calibration_report(probs, outcomes) -> dict:

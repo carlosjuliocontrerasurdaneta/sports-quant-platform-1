@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from sqp.backtesting.availability import load_starter_history
 from sqp.backtesting.roi_engine import load_closing_odds, realized_roi_backtest
 from sqp.config import ROOT, Settings
 from sqp.logging_config import get_logger
@@ -54,10 +55,16 @@ def main() -> int:
         res = realized_roi_backtest(results, odds, league, meta["family"],
                                     meta.get("league_params"), risk=settings.risk,
                                     bankroll=settings.bankroll, warmup=args.warmup,
-                                    bet_from_date=args.bet_from_date)
+                                    bet_from_date=args.bet_from_date,
+                                    starter_history=load_starter_history(ROOT, league))
         print(f"\n=== {league.upper()} (realized ROI) ===")
         print(f"odds events: {len(odds)} | results matched: {res['n_events_matched']} | "
               f"bets: {res['n_bets']}")
+        print(f"eventos sin hora de captura: {res['n_events_legacy_capture']} | "
+              f"capturas inválidas descartadas: {res['n_events_invalid_capture']} | "
+              f"capturas anteriores al corte: {res['n_events_capture_before_freeze']}")
+        print(f"resultados incorporados sin hora de disponibilidad: {res['n_results_observed_day_proxy']} | "
+              f"eventos sin historial suficiente al corte: {res['n_events_skipped_warmup_at_cutoff']}")
         if res["n_bets"]:
             print(f"graded: {res['n_graded']} | staked: {res['staked']} | pnl: {res['pnl']} | "
                   f"REALIZED ROI: {res['realized_roi']:.2%}")

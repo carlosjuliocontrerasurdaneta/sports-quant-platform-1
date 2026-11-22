@@ -51,15 +51,13 @@ def main() -> int:
         res = walk_forward_backtest(results, league, meta["family"],
                                     meta.get("league_params"), warmup=args.warmup)
         n = res["n_games_evaluated"]
-        outcomes = [1.0 if r["home_score"] > r["away_score"] else
-                    (0.5 if r["home_score"] == r["away_score"] else 0.0)
-                    for r in results[args.warmup:]]
-        binary = [o for o in outcomes if o in (0.0, 1.0)]
+        binary = res["binary_outcomes"]
+        draws = len(results) - args.warmup - len(binary)
         home_rate = sum(binary) / len(binary) if binary else float("nan")
         baseline_brier = sum((home_rate - y) ** 2 for y in binary) / len(binary) if binary else float("nan")
 
         print(f"\n=== {league.upper()} (walk-forward, {len(results)} results, warmup {args.warmup}) ===")
-        print(f"games evaluated (sin empates): {n} | empates excluidos: {len(outcomes) - len(binary)}")
+        print(f"games evaluated (sin empates): {n} | empates excluidos: {draws}")
         print(f"brier_score: {res['brier_score']:.4f}  (baseline tasa-local in-sample: {baseline_brier:.4f})")
         print(f"log_loss:    {res['log_loss']:.4f}")
         print(f"ece:         {res['ece']:.4f}")

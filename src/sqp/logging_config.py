@@ -63,6 +63,33 @@ _file_handler: RotatingFileHandler | None = None
 _file_handler_resuelto = False
 
 
+class _ProcessRotatingFileHandler(RotatingFileHandler):
+    """Serialize rotation and release the Windows file handle after each write."""
+
+    _writing = False
+
+    def emit(self, record: logging.LogRecord) -> None:
+        # A sidecar-lock warning still goes to the console. Re-entering this
+        # handler to write it would try to acquire the same lock again.
+        if self._writing:
+            return
+        from sqp.storage.lock import locked
+
+        self._writing = True
+        try:
+            with locked(Path(self.baseFilename)):
+                try:
+                    super().emit(record)
+                finally:
+                    if self.stream is not None:
+                        self.stream.close()
+                        self.stream = None
+        except Exception:
+            self.handleError(record)
+        finally:
+            self._writing = False
+
+
 def _shared_file_handler(fmt: logging.Formatter) -> RotatingFileHandler | None:
     """El `RotatingFileHandler` del proceso, creado como mucho una vez.
 
@@ -86,8 +113,8 @@ def _shared_file_handler(fmt: logging.Formatter) -> RotatingFileHandler | None:
         logdir = Path(__file__).resolve().parents[2] / "logs"
     if logdir.exists():
         # Rotacion: sqp.log crecia sin limite (auditoria 2026-07-24, M-3).
-        fh = RotatingFileHandler(logdir / "sqp.log", maxBytes=5_000_000,
-                                 backupCount=3, encoding="utf-8")
+        fh = _ProcessRotatingFileHandler(logdir / "sqp.log", maxBytes=5_000_000,
+                                         backupCount=3, encoding="utf-8", delay=True)
         fh.setFormatter(fmt)
         _file_handler = fh
     return _file_handler

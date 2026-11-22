@@ -11,7 +11,11 @@ contra un `maxBytes` de 5.000.000, `sqp.log.3` presente y `.1`/`.2` ausentes, y
 1.002 bloques `--- Logging error ---` en `logs/run_diario.log`.
 """
 import logging
+import os
+import subprocess
+import sys
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 from sqp.logging_config import get_logger
 
@@ -93,10 +97,38 @@ def test_la_suite_no_escribe_en_el_log_de_produccion():
     """AUD-011 (ronda audit-2026-10-18): con `SQP_LOG_DIR` (lo fija
     `tests/conftest.py`) el handler de fichero apunta fuera de `logs/` del
     repositorio."""
-    from pathlib import Path
-
     repo_logs = (Path(__file__).resolve().parents[1] / "logs").resolve()
     handlers = _handlers_de_fichero(get_logger("sqp.prueba.aud011"))
     assert handlers, "SQP_LOG_DIR fijado: el handler de fichero debe existir"
     for fh in handlers:
         assert repo_logs not in Path(fh.baseFilename).resolve().parents
+
+
+def test_parallel_rotation_keeps_each_record_once(tmp_path):
+    code = """
+from logging.handlers import RotatingFileHandler
+import sys
+from sqp.logging_config import get_logger
+log = get_logger("sqp.multiprocess.rotation")
+handler = next(h for h in log.handlers if isinstance(h, RotatingFileHandler))
+handler.maxBytes = 350
+handler.backupCount = 40
+for i in range(20):
+    log.info("record-%s-%s", sys.argv[1], i)
+"""
+    src = Path(__file__).resolve().parents[1] / "src"
+    env = {**os.environ, "PYTHONPATH": str(src), "SQP_LOG_DIR": str(tmp_path)}
+    processes = [
+        subprocess.Popen([sys.executable, "-B", "-c", code, str(tag)],
+                         env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        for tag in range(2)
+    ]
+    for process in processes:
+        _, errors = process.communicate(timeout=45)
+        assert process.returncode == 0 and errors == b""
+    messages = [
+        line.rsplit(" | ", 1)[-1]
+        for path in tmp_path.glob("sqp.log*")
+        for line in path.read_text(encoding="utf-8").splitlines()
+    ]
+    assert sorted(messages) == sorted(f"record-{tag}-{i}" for tag in range(2) for i in range(20))

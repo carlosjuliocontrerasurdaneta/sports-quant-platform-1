@@ -6,7 +6,8 @@ preciaba (lineups, abridores, clima). Este pase corre tras cada captura de
 cierre -- cada 30 min desde julio (CAPTURE_CLOSE, SQP_Capture_Close_Cdev
 PT30M; aqui decia "horaria" hasta el 2026-09-13, AUD-LOW-004) y sin cuota
 extra: reusa el snapshot recien persistido y, para los picks del dia cuyo evento comienza dentro de la
-ventana, recalcula el edge al consenso vigente; si el pick ya NO se generaria
+ventana, recalcula el edge al menor precio entre el consenso y su casa de
+ejecucion, cuando consta una casa. Si el pick ya NO se generaria
 (edge actual < min_edge), lo REVOCA: stake y kelly a 0, flag
 "stale_edge_revoked" y rastro en data/bets/revalidation_log.csv.
 
@@ -34,6 +35,7 @@ pase re-valida el PRECIO, no re-estima el modelo.
 """
 from __future__ import annotations
 
+import math
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -44,7 +46,9 @@ from sqp.audit.clv import _point
 from sqp.audit.clv_movement import (exclude_two_way_draw_books,
                                     snapshot_consensus_price)
 from sqp.logging_config import get_logger
+from sqp.markets.odds import is_usable_price
 from sqp.pipeline.closing_capture import _parse_utc
+from sqp.pipeline.probabilities import _book_key
 from sqp.sports.team_names import normalize_key
 from sqp.storage.atomic import append_csv_log, atomic_write_csv
 from sqp.storage.lock import locked
@@ -52,6 +56,7 @@ from sqp.storage.lock import locked
 log = get_logger("sqp.revalidation")
 
 REVAL_FLAG = "stale_edge_revoked"
+NO_EXECUTION_PRICE = "no_execution_price"
 PITCHER_CHANGED_FLAG = "pitcher_changed"
 STARTER_PULLED_FLAG = "starter_pulled"
 REVAL_LOG_FILENAME = "revalidation_log.csv"
@@ -91,6 +96,8 @@ def _revoke_row(df: pd.DataFrame, idx: int, flag: str, stamp: str) -> None:
 
 def _prepare_reval_columns(df: pd.DataFrame) -> pd.DataFrame:
     for col, default in (("reval_action", ""), ("reval_price", float("nan")),
+                         ("reval_consensus_price", float("nan")),
+                         ("reval_execution_price", float("nan")),
                          ("reval_edge", float("nan")), ("revalidated_at", "")):
         if col not in df.columns:
             df[col] = default
@@ -165,14 +172,13 @@ def _fresh_snapshot(event_odds: pd.DataFrame, now: datetime,
     antiguedad; DataFrame vacio si no hay captura fresca."""
     if event_odds.empty:
         return pd.DataFrame()
-    ts = pd.to_datetime(event_odds["captured_at"], errors="coerce", utc=True)
-    pre = event_odds[ts.notna() & (ts <= pd.Timestamp(now))]
-    if pre.empty:
+    ts = pd.to_datetime(event_odds["captured_at"], errors="coerce", utc=True, format="mixed")
+    latest = ts[ts <= pd.Timestamp(now)].max()
+    if pd.isna(latest):
         return pd.DataFrame()
-    latest = pd.to_datetime(pre["captured_at"], utc=True).max()
     if (pd.Timestamp(now) - latest).total_seconds() / 60.0 > max_age_min:
         return pd.DataFrame()
-    return pre[pd.to_datetime(pre["captured_at"], utc=True) == latest]
+    return event_odds[ts == latest]
 
 
 # La exclusion vive junto a `snapshot_consensus_price` desde el 2026-10-16 para
@@ -251,8 +257,7 @@ def revalidate_candidates(predictions_dir: Path, root: Path, *,
                           window_min: int = DEFAULT_WINDOW_MIN,
                           price_max_age_min: float = DEFAULT_PRICE_MAX_AGE_MIN,
                           now: datetime | None = None) -> dict:
-    """Re-valida los picks del dia con evento en (now, now+window_min] contra
-    el consenso del ultimo snapshot fresco. Devuelve el resumen del pase."""
+    """Re-valida los picks inminentes con los precios del último snapshot fresco."""
     now = now or datetime.now(timezone.utc)
     summary: dict[str, Any] = {"evaluated": 0, "revoked": 0, "kept": 0,
                                "skipped_no_price": 0, "leagues": []}
@@ -306,18 +311,43 @@ def revalidate_candidates(predictions_dir: Path, root: Path, *,
                     summary["skipped_no_price"] += 1
                     continue
                 snap = _exclude_two_way_draw_books(snap, league)
-                price = snapshot_consensus_price(
-                    snap, str(r.market), str(r.selection),
-                    _point(str(r.market), getattr(r, "line", None)))
+                market = str(r.market)
+                selection = str(r.selection)
+                point = _point(market, getattr(r, "line", None))
+                consensus = snapshot_consensus_price(snap, market, selection, point)
                 p = _prob_basis(r)
-                if price is None or p is None:
+                if (not is_usable_price(consensus) or consensus is None or p is None
+                        or not math.isfinite(p) or not 0.0 <= p <= 1.0):
                     summary["skipped_no_price"] += 1
                     continue
+                price = consensus
+                execution = float("nan")
+                book = getattr(r, "execution_book", None)
+                if pd.notna(book) and _book_key(book) not in ("", "consensus_median"):
+                    quote = None
+                    if "bookmaker" in snap:
+                        book_rows = snap[snap["bookmaker"].map(_book_key) == _book_key(book)]
+                        quote = snapshot_consensus_price(book_rows, market, selection, point)
+                    if quote is None or not is_usable_price(quote):
+                        summary["skipped_no_price"] += 1
+                        df.loc[df.index[idx], ["reval_action", "reval_price", "reval_edge",
+                                               "reval_consensus_price", "reval_execution_price",
+                                               "revalidated_at"]] = [
+                            NO_EXECUTION_PRICE, float("nan"), float("nan"), consensus,
+                            float("nan"), now.isoformat(),
+                        ]
+                        changed = True
+                        continue
+                    execution = quote
+                    price = min(consensus, execution)
                 reval_edge = p * price - 1.0
                 summary["evaluated"] += 1
                 stamp = now.isoformat()
                 df.loc[df.index[idx], ["reval_price", "reval_edge",
-                                       "revalidated_at"]] = [price, reval_edge, stamp]
+                                       "reval_consensus_price", "reval_execution_price",
+                                       "revalidated_at"]] = [
+                    price, reval_edge, consensus, execution, stamp,
+                ]
                 if reval_edge < min_edge:
                     summary["revoked"] += 1
                     _revoke_row(df, idx, REVAL_FLAG, stamp)
@@ -328,6 +358,9 @@ def revalidate_candidates(predictions_dir: Path, root: Path, *,
                         "line": getattr(r, "line", ""),
                         "entry_price": getattr(r, "price_decimal", ""),
                         "reval_price": price, "reval_edge": round(reval_edge, 4),
+                        "reval_consensus_price": consensus,
+                        "reval_execution_price": execution,
+                        "execution_book": book,
                         "reason": "edge_below_min",
                     })
                     log.info("[%s] revoked %s %s %s: edge %.4f < %.4f at close %.3f",

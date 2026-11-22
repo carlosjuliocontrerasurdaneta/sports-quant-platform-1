@@ -9,7 +9,7 @@ de decisión; ``daily`` los re-importa, así que los consumidores existentes
 from __future__ import annotations
 import math
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from statistics import median
 from typing import TYPE_CHECKING, Callable, Iterable
 from sqp.calibration.calibrator import calibrate_probability
@@ -26,6 +26,7 @@ from sqp.logging_config import get_logger
 from sqp.markets.odds import is_usable_price
 from sqp.markets.vig import remove_vig_power
 from sqp.providers.odds_api import SPORT_KEYS
+from sqp.sports.team_names import normalize_key
 
 if TYPE_CHECKING:
     from sqp.config import RiskConfig, WeatherConfig
@@ -90,6 +91,50 @@ def _eligible_lines(eo: EventOdds, three_way: bool | None = None) -> list[Market
         return list(eo.lines)
     return [ln for ln in eo.lines
             if not (ln.market == "h2h" and _book_key(ln.bookmaker) in excluded)]
+
+
+def validate_book_contracts(eo: EventOdds, three_way: bool) -> EventOdds:
+    """Keep complete, usable contracts from each bookmaker at each line."""
+    home, away = eo.event.home, eo.event.away
+    team_names = {normalize_key(home): home, normalize_key(away): away}
+    paired_outcomes = {
+        "h2h": {home, away, "Draw"} if three_way else {home, away},
+        "spreads": {home, away},
+        "totals": {"Over", "Under"},
+    }
+    groups: dict[tuple[str, str, float | None], list[MarketLine]] = defaultdict(list)
+    kept = []
+    for line in _eligible_lines(eo, three_way):
+        market = line.market
+        if market not in paired_outcomes:
+            kept.append(line)
+            continue
+        name = normalize_key(line.outcome)
+        if market == "totals":
+            outcome = {"over": "Over", "under": "Under"}.get(name, line.outcome)
+        elif market == "h2h" and name in {"draw", "tie"}:
+            outcome = "Draw"
+        else:
+            outcome = team_names.get(name, line.outcome)
+        point = line.point
+        if market == "spreads" and outcome == away and point is not None:
+            point = -point
+        groups[_book_key(line.bookmaker), market, point].append(replace(line, outcome=outcome))
+    rejected = 0
+    for (_, market, point), lines in groups.items():
+        correct_point = point is None if market == "h2h" else point is not None and math.isfinite(point)
+        usable = [line for line in lines if is_usable_price(line.price_decimal)]
+        by_outcome = {line.outcome: line for line in usable}
+        conflicting = len({(line.outcome, line.price_decimal) for line in usable}) > len(by_outcome)
+        if (not correct_point or {line.outcome for line in lines} != paired_outcomes[market]
+                or set(by_outcome) != paired_outcomes[market] or conflicting):
+            rejected += 1
+            continue
+        kept.extend(by_outcome.values())
+    if rejected:
+        log.warning("[%s] evento %s: %d contrato(s) de casa incompletos o inválidos.",
+                    eo.event.league, eo.event.event_id, rejected)
+    return replace(eo, lines=kept)
 
 
 def _consensus_lines(eo: EventOdds, three_way: bool | None = None) -> dict:
@@ -187,23 +232,15 @@ def _novig_probs(cons: dict, market: str, point=None,
         # Alcanzabilidad medida el 2026-08-25: 0 de 2.091.866 lineas h2h reales
         # traen `point`, asi que hoy es un no-op y manana un guard.
         keys = [k for k in cons if k[0] == "h2h" and k[2] is None]
-        required = 3 if three_way else 2
-        if not three_way:
-            # Antes solo se exigia `len(keys) >= 2`, y con una casa 1X2 en el
-            # consenso se de-vig-eaban Home/Away/Draw en un mercado de dos
-            # desenlaces: Home+Away ~0,84 (auditoría 2026-10-15, AUD-003). El
-            # conjunto debe ser exacto; si no, el camino default-deny de
-            # "mercado incompleto" en vez de adivinar que claves sobran.
-            sides = {k[1] for k in keys}
-            if len(keys) != 2 or "Draw" in sides:
-                return {}
-            if outcomes is not None and sides != set(outcomes):
-                return {}
+        sides = {k[1] for k in keys}
+        if len(keys) != (3 if three_way else 2) or ("Draw" in sides) != three_way:
+            return {}
+        if outcomes is not None and sides - {"Draw"} != set(outcomes):
+            return {}
     else:
         keys = [k for k in cons if k[0] == market and k[2] == point]
-        required = 2
-    if len(keys) < required:
-        return {}
+        if len(keys) < 2 or (market == "totals" and {k[1] for k in keys} != {"Over", "Under"}):
+            return {}
     if not all(is_usable_price(cons[k]) for k in keys):
         # Un precio no finito degrada al camino YA existente y probado de
         # "mercado incompleto" ({} -> flag incomplete_market, stake 0) en vez de
