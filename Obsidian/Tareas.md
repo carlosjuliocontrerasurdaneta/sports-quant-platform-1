@@ -13,17 +13,17 @@ Pendientes activos del proyecto, por prioridad. Al completar una: marcarla, anot
 Ver [[Bitácora/2026-11-22]], `audit/latest/STATUS.md`.
 
 - [ ] **Portero NHL (AUD-003, Enmienda 6):** `pre1.json` ya no es válido. Sobre el HEAD del commit de la remediación, con el árbol limpio y la instantánea `portero-nhl-20261121`, toca:
-  1. `--parity-only`;
-  2. `--pre` nuevo, registrando el HEAD y los hashes;
-  3. modo completo con `--pre-json` del nuevo `--pre`, sin nada en medio.
+  1. `--parity-only`; **hecho 2026-11-23 sobre `901ba7b`: PARIDAD OK** (n = 33.200, a 1e-12; 13.711 s);
+  2. `--pre` nuevo, registrando el HEAD y los hashes; **hecho 2026-11-23: `pre2.json`**, idéntico a `pre1.json` salvo `git_head` y duración (mismos 7 hashes, recuentos, cobertura, particiones y potencia);
+  3. modo completo con `--pre-json` del nuevo `--pre`, sin nada en medio; **lanzado 2026-11-23 13:03** (`completo.json` en `C:\dev\sqp-snapshots\portero-nhl-20261121-out\`). Veredicto: Fable, antes de cualquier commit.
 
   Es de clase escalada: Fable.
-- [ ] **Operador (AUD-005):** re-liquidar las 28 filas NCAAB anuladas por la orientación invertida (20 en `graded_ncaab` y 8 en `settled_ncaab`). Es una escritura en `data/`.
+- [x] **AUD-005 (2026-11-23, `507a7af`):** re-liquidadas **34** filas NCAAB (24 en `graded_ncaab`, 10 en `settled_ncaab`, 12 eventos; las 28 de la auditoría más 2 eventos del 22-11) con `scripts/repair_aud005_20261123.py`. Autorización expresa del operador; Fable APTO CON CAMBIOS, aplicados. Solo cambian `result`, `pnl` y `flags` (verificado contra la copia). Copia y manifiesto: `data/backups/repair-aud005-20261123/20261123T210446Z/`. Ver [[Bitácora/2026-11-23]].
 - [ ] **Operador (AUD-009):** decidir sobre `mlb_spreads` y `wnba_spreads`, que no tienen huella del modelo. Dos opciones:
   - revalidarlos fuera de muestra y volver a promoverlos;
   - retirarlos con `promote_calibration.py --demote`.
 
-  Hoy se aplican con un aviso.
+  Hoy se aplican con un aviso. **Evidencia OOS 2026-11-23** (filas posteriores a cada promoción, deduplicadas): `mlb_spreads` ΔBrier calibrado−crudo −0,0003 [IC95 −0,0042, +0,0036], n = 980/486 eventos; `wnba_spreads` −0,0163 [−0,0344, +0,0042], n = 178/63. Ninguno empeora el crudo: no hay base para retirarlos.
 - [ ] **Decisión registrada antes de reactivar el gate CLV (AUD-011):** incluir push y medias en el CLV, y aplicar `validate_book_contracts` al cierre. Si se adopta, hay que cambiar a la vez `test_compute_clv_ignores_push_and_void` y la documentación.
 - [ ] **Residual (AUD-009):** `monitoring/health.py::_live_calibration_markets` informa un `model_mismatch` como calibrado. Solo afecta al informe.
 - [ ] **Verificación independiente** de la ronda: fase «Verificación independiente» del contrato de auditoría.

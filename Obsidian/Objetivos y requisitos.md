@@ -74,6 +74,11 @@ Plataforma Python de analítica cuantitativa deportiva (MLB, NBA/WNBA, NFL, NHL,
 
 ## Criterio de éxito (regla de salida del shadow)
 
-Un (liga, mercado) se promueve a stake real solo si:
-1. Su **CLV mediano es positivo** sobre ≥30 apuestas liquidadas emparejadas a cierre capturado (gate automático `clv_gate.json`, ver [[Conocimiento/CLV y selección adversa]]), y
-2. La calibración pasa el **gate de Brier OOS** tras ~100 picks liquidados en shadow.
+**Vigente desde el 2026-08-16: `prediction_gate`** (`configs/default.yaml`, `enabled: true`, default-deny; criterio completo en `docs/research/2026-08-16-preregistro-regla-de-salida.md`; registro `data/bets/prediction_gate.json`, reescrito por `scripts/update_prediction_gate.py`). Un (liga, mercado) recibe stake real solo si:
+1. Acumula **n ≥ 300** eventos resueltos desde el inicio de la ventana de validación (2026-08-16), y
+2. El **test de signo pareado** del modelo frente al precio sin margen bate al mercado con p < α de Bonferroni (α = 0,000702 con K = 69, registro del 2026-11-22), y
+3. El **EV realizado del lado del modelo** es positivo (condición 2 del registro desde el 2026-11-03).
+
+Cada corte tiene **un único test**: si falla, queda `agotado_test_unico`. A 2026-11-22: 0 de 76 cortes aprobados (65 con muestra insuficiente, 11 agotados).
+
+**Histórico, ya no vinculante:** el criterio anterior (CLV mediano positivo sobre ≥30 apuestas con `clv_gate.json`, más un gate de Brier OOS tras ~100 picks) quedó sustituido; `clv_gate.enabled` está en `false`. Ver [[Conocimiento/CLV y selección adversa]]. Corregido el 2026-11-23: esta sección seguía citando el criterio antiguo.
