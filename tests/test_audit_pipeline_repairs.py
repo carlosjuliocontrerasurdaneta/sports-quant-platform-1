@@ -151,6 +151,9 @@ def test_revalidation_distinguishes_the_execution_book(execution, consensus, exp
         assert result["revoked"] == 1 and result["skipped_no_price"] == 0
         assert row["reval_price"] == pytest.approx(consensus)
         assert pd.isna(row["reval_execution_price"])
+        from sqp.pipeline.revalidation import REVAL_LOG_FILENAME
+        log = pd.read_csv(tmp_path / "data" / "bets" / REVAL_LOG_FILENAME)
+        assert log.iloc[-1]["reason"] == "edge_below_min_no_execution"
     elif execution is None:
         assert result["skipped_no_price"] == 1 and result["kept"] == 0
         assert pd.isna(row["reval_price"])

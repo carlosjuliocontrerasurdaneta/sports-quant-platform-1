@@ -322,6 +322,7 @@ def revalidate_candidates(predictions_dir: Path, root: Path, *,
                     continue
                 price = consensus
                 execution = float("nan")
+                no_execution_quote = False
                 book = getattr(r, "execution_book", None)
                 if pd.notna(book) and _book_key(book) not in ("", "consensus_median"):
                     quote = None
@@ -337,6 +338,7 @@ def revalidate_candidates(predictions_dir: Path, root: Path, *,
                     # casa de ejecucion no cotizaba.
                     if missing_quote and p * consensus - 1.0 < min_edge:
                         quote = None
+                        no_execution_quote = True
                     elif missing_quote:
                         summary["skipped_no_price"] += 1
                         df.loc[df.index[idx], ["reval_action", "reval_price", "reval_edge",
@@ -371,8 +373,10 @@ def revalidate_candidates(predictions_dir: Path, root: Path, *,
                         "reval_consensus_price": consensus,
                         "reval_execution_price": execution,
                         "execution_book": book,
-                        "reason": ("edge_below_min" if math.isfinite(execution)
-                                   else "edge_below_min_no_execution"),
+                        # Solo cuando el pick TENIA casa de ejecucion y esta no
+                        # cotizaba; un pick de consenso tambien lleva NaN.
+                        "reason": ("edge_below_min_no_execution" if no_execution_quote
+                                   else "edge_below_min"),
                     })
                     log.info("[%s] revoked %s %s %s: edge %.4f < %.4f at close %.3f",
                              league, r.event_id, r.market, r.selection,

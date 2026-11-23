@@ -26,3 +26,5 @@ Revisiones Fable previas al commit, ejecutadas con `Agent(model: "fable")`:
 2. Revisión del texto de la Enmienda 6 (redactado por Fable): APTO CON CAMBIOS. Cambio aplicado: punto 3 de (a) sobre `retrospective_starters`, más la aclaración de (c).
 
 FABLE-REVIEW: 2026-11-22 | veredicto: APTO CON CAMBIOS (aplicados; revision de codigo "se puede commitear" y revision del texto de la Enmienda 6) | rutas: src/sqp/, scripts/research/, docs/research/2026-09-26-preregistro-portero-nhl.md, tests/
+
+Seguimiento tras el push de `e23634b`: el CI falló en `tests/test_revalidation.py::test_price_revoke_logs_reason`. El retoque opcional del motivo del log usaba `math.isfinite(execution)`, que también es NaN en los picks sin casa de ejecución. Se corrigió con una marca explícita, `no_execution_quote`. Es solo la etiqueta del log y no es de clase escalada, así que no se pidió otra revisión Fable. Validación: 210 passed, en los 14 ficheros que tocan la revalidación.

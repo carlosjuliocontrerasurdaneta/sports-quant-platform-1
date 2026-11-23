@@ -53,3 +53,11 @@ Tras aplicarlos: 88 passed (pipeline_repairs, huella, calibrator, calibration_li
 | CI de `main` tras el push | Ver `STATUS.md` |
 
 Las suites se ejecutaron antes de los últimos retoques de la revisión de Fable (huella en `staging=False`, docstring, `reason` del log). Esos retoques se validaron con el lote acotado de 88 tests, más ruff y mypy.
+
+## Seguimiento tras el push de `e23634b`
+
+- **Fallo:** CI de `e23634b` (run 45077754200) en rojo por `tests/test_revalidation.py::test_price_revoke_logs_reason`, que esperaba `edge_below_min` y recibía `edge_below_min_no_execution`.
+- **Causa:** el retoque opcional del motivo del log usaba `math.isfinite(execution)`, que también es NaN en los picks de consenso sin casa de ejecución. El fichero de ese test no estaba en el lote acotado de 88 tests ejecutado después del retoque.
+- **Arreglo:** marca explícita `no_execution_quote`, y el test de AUD-004 fija ahora el motivo.
+- **Validación:** 210 passed (los 14 ficheros que tocan la revalidación); ruff y mypy limpios.
+- **CI del arreglo:** ver `STATUS.md`.
