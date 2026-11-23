@@ -1,7 +1,7 @@
 # Current Task
 
-Status: closed (diagnosis phase)
-Result: DIAGNOSTICO_COMPLETO (sin veredicto APTO/NO APTO: no hubo remediación)
+Status: closed (diagnóstico + remediación)
+Result: REMEDIACION_APLICADA_PENDIENTE_DE_VERIFICACION (CI verde en `aadb9ab`; sin veredicto APTO en esta fase)
 Primary loop: `full-audit` (Audit Loop)
 Iteration: 1 / 1
 Owner: sesión principal `claude-opus-5-5`; revisores de solo lectura: `fable` (commit 9de724f), `opus` (cuantitativo, mercados), `sonnet` (seguridad/CI, skills, arquitectura/datos)
@@ -17,7 +17,7 @@ Round: `audit-2026-11-22`, base `9de724f` (sin pushear)
 13 confirmados (0 CRITICAL, 0 HIGH, 4 MEDIUM, 9 LOW); P1: AUD-001/002/003 (CI rojo; 2 regresiones de 9de724f).
 
 ## Siguiente paso
-El operador decide el alcance de la remediación (`audit-remediation`). Antes hay que coordinarla con la sesión Codex que trabaja en `codex/remediacion-auditoria-20261122`.
+Remediación hecha (commits `e23634b` y `aadb9ab`; CI verde). Siguiente: verificación independiente de la ronda; portero NHL con `--parity-only` y `--pre` nuevos (Enmienda 6); decisiones del operador sobre AUD-005, AUD-009 y AUD-011 (ver `audit/latest/STATUS.md`).
 
 ## Remediación (2026-11-22)
 

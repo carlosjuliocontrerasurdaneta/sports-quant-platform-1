@@ -50,7 +50,7 @@ Tras aplicarlos: 88 passed (pipeline_repairs, huella, calibrator, calibration_li
 | `python -m mypy src` | exit 0, 119 ficheros |
 | `pytest -q -m "not slow and not heavy"` (suite rápida completa, sin `-x`) | **2.962 passed, 0 failed**, 811 deselected (34 min 45 s) |
 | Suite `slow`/`heavy` | No ejecutada localmente en su totalidad; las partes afectadas (paridad y backtest) se ejecutaron arriba. La cubre el CI |
-| CI de `main` tras el push | Ver `STATUS.md` |
+| CI de `main` tras el push | `e23634b` rojo (motivo del log); `aadb9ab` **verde** (run 45091590076) |
 
 Las suites se ejecutaron antes de los últimos retoques de la revisión de Fable (huella en `staging=False`, docstring, `reason` del log). Esos retoques se validaron con el lote acotado de 88 tests, más ruff y mypy.
 
@@ -60,4 +60,4 @@ Las suites se ejecutaron antes de los últimos retoques de la revisión de Fable
 - **Causa:** el retoque opcional del motivo del log usaba `math.isfinite(execution)`, que también es NaN en los picks de consenso sin casa de ejecución. El fichero de ese test no estaba en el lote acotado de 88 tests ejecutado después del retoque.
 - **Arreglo:** marca explícita `no_execution_quote`, y el test de AUD-004 fija ahora el motivo.
 - **Validación:** 210 passed (los 14 ficheros que tocan la revalidación); ruff y mypy limpios.
-- **CI del arreglo:** ver `STATUS.md`.
+- **CI del arreglo:** `aadb9ab`, run 45091590076: **todo en verde** (test 3.11–3.14, test-windows, secret-scan, dependency-audit); la issue #8 se cerró sola.

@@ -27,7 +27,7 @@
     "BACKLOG.md": "38fd0afa70456363d313e1a3cb19758d036e6ebf91bf17775793f878c4adc29f"
   },
   "tests_initial": "ruff 0; mypy 0; full pytest NOT_VERIFIABLE (timeout 34%); fast suite -x: 1 failed (AUD-003), 1777 passed; 2 NEW_REGRESSION reproducidos; CI red",
-  "tests_final": "ruff 0; mypy 0 (119); suite rapida 2962 passed 0 failed; lotes acotados tras la revision Fable 88 passed; CI tras push: ver STATUS.md",
+  "tests_final": "ruff 0; mypy 0 (119); suite rapida 2962 passed 0 failed; revalidacion 210 passed tras el arreglo; CI main verde en aadb9ab",
   "files_modified": [
     ".claude/automation/model-routing.json",
     ".claude/automation/runtime/current-task.md",
@@ -85,8 +85,8 @@
     "scope": "AUD-001..AUD-013",
     "deliverables": {
       "CHANGES.md": "75bd4353c82302dc6a28d4f6f65e2c47a70b1b506856c29d3576dafd72bbed6e",
-      "VALIDATION.md": "3b833988e89cd0e8325bfb18e33506b9b3bddee7e4e5a7e6d9e688a371b98572",
-      "STATUS.md": "df116b179bf3e3ea1215fd5ed91681099bca7f6d125eb49bb65ac9f721bc64b0"
+      "VALIDATION.md": "b8bec169d09568dd78e5dcf32fbd1610a94ea23a8b00a11f99b6ae2bf1bcf749",
+      "STATUS.md": "535dc1ca6e2a38521f2681eeae860fa498c140e32315d95633d878d008d60a98"
     },
     "fable_precommit_review": "se puede commitear; AUD-003/AUD-009 APROBADO CON CAMBIOS (aplicados); resto APROBADO",
     "results": {
@@ -109,6 +109,14 @@
       "no_aplicable_falso_positivo": [
         "AUD-006"
       ]
+    },
+    "commits": [
+      "e23634b",
+      "aadb9ab"
+    ],
+    "ci": {
+      "e23634b": "failure (run 45077754200, motivo del log)",
+      "aadb9ab": "success (run 45091590076); issue #8 cerrada"
     }
   }
 }

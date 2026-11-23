@@ -2,7 +2,7 @@
 
 | ID | Prio | Remediación | Verificación independiente | Evidencia | Próxima acción |
 |---|---|---|---|---|---|
-| AUD-001 | P1 | Corregido (commit + push de `9de724f` con AUD-002/003), pendiente de verificación | Pendiente | CI de `main` tras el push | Confirmar el CI verde y el cierre automático de la issue #8 |
+| AUD-001 | P1 | Corregido, pendiente de verificación independiente | Pendiente | CI de `main` **verde** en `aadb9ab` (run 45091590076: test 3.11–3.14, test-windows, secret-scan y dependency-audit en success); issue #8 cerrada automáticamente el 2026-11-23T01:12Z. El run de `e23634b` (45077754200) falló por el retoque del log, corregido en `aadb9ab` | — |
 | AUD-002 | P1 | Corregido, pendiente de verificación | Pendiente | `test_run_status.py` 67 passed | — |
 | AUD-003 | P1 | Corregido (oráculo de paridad + `neutral_in_estimate`), pendiente de verificación. Enmienda 6 añadida al pre-registro | Pendiente | 97 passed; Fable APROBADO CON CAMBIOS (aplicados) | Operador/sesión: `--parity-only` y `--pre` nuevos sobre el HEAD del commit, con árbol limpio; después el modo completo con `--pre-json` |
 | AUD-004 | P2 | Corregido, pendiente de verificación | Pendiente | 5 passed; Fable APROBADO | — |
