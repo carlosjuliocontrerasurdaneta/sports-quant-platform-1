@@ -1016,3 +1016,17 @@ Es un defecto de código demostrable sin mirar el resultado («paridad rota»), 
 - `pre1.json` queda **inválido** para el modo completo: su HEAD (`04f3015`) ya no es el del código que se ejecutará.
 - Hay que repetir `--parity-only` y `--pre` sobre el **nuevo HEAD** (el del commit que incluya este parche y esta enmienda), con el árbol limpio, y registrar el HEAD y los hashes.
 - Solo después se ejecuta el modo completo, con `--pre-json` apuntando al nuevo `--pre` y sin nada en medio (Enmienda 2(d) y Enmienda 3(f)).
+
+## Resultado (2026-11-23): RECHAZA
+
+Modo completo único: `2026-11-23-resultado-portero-nhl.json` (SHA-256 `8d31b03b…860c`, rc = 0, 30.170 s).
+- **Procedencia:** HEAD `901ba7b`, árbol limpio e instantánea congelada `portero-nhl-20261121`. Los hashes de entrada coinciden con `--pre` #2 (Enmienda 6), y `--parity-only` dio OK a 1e-12.
+- **M2 (proxy):** falla 6 de los 7 subcriterios de la §8. Solo se cumple β > 0 (0,161 / 0,103 / 0,109).
+  - Δ log loss del moneyline en los afectados del combinado: +0,000034 (IC95 por días [−0,000084, +0,000155]; n = 15.891), frente a un margen de −0,002.
+  - Δ en A, B y C: +0,000104 / −0,000025 / +0,000019.
+  - ECE(T) 0,01064 > ECE(base) 0,01052.
+  - T − C = +0,000123.
+  - Totales +0,000134 y spreads +0,000100.
+- **M1 (titular real):** también rechaza. Δ = −0,000222 (IC95 [−0,000499, +0,000052]), y empeora totales (+0,000351) y spreads (+0,000050).
+- **Consecuencia (tabla de la §8):** no se activa, `goalie_beta` sigue en 0, la fase 2 no se ejecuta y la captura de probables se mantiene (decisión del operador). Reabrir exige una forma distinta y pre-registrada (§14).
+- Informe completo en `2026-11-23-resultado-portero-nhl.md`. Veredicto del escalón Fable.

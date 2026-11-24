@@ -230,3 +230,43 @@ def test_revalidate_reports_but_never_removes_mismatch_or_legacy(
                                            "wnba_spreads": "isotonic"}
     textos = " ".join(r.getMessage() for r in caplog.records)
     assert "DESLIGADO" in textos and "SIN huella" in textos
+
+
+def test_health_does_not_count_model_mismatch_as_calibrated(models, monkeypatch):
+    """Residual de AUD-009 (audit-2026-11-22): `health` informaba como calibrado
+    un calibrador en `model_mismatch`, que se sirve en crudo."""
+    from sqp.monitoring.health import _live_calibration_markets
+    _stage()
+    cal.promote_calibrators(keys=[KEY])
+    assert _live_calibration_markets(models, "mlb") == ["spreads"]
+    _patch_mlb_params(monkeypatch, park_bound=0.10)
+    assert cal.live_calibration_state(KEY, "auto") == "model_mismatch"
+    assert _live_calibration_markets(models, "mlb") == []
+
+
+def test_health_still_counts_legacy_key_without_fingerprint(models):
+    """Sin huella (legacy) se sigue aplicando, asi que sigue contando."""
+    from sqp.monitoring.health import _live_calibration_markets
+    _put_live()
+    assert _live_calibration_markets(models, "mlb") == ["spreads"]
+
+
+def test_health_reads_fingerprints_from_its_own_models_dir(models, tmp_path, monkeypatch):
+    """Revision Fable 2026-11-24: health debe leer el registro de huellas de su
+    `models_dir`, no el de MODELS_DIR global."""
+    from sqp.monitoring.health import _live_calibration_markets
+    _stage()
+    cal.promote_calibrators(keys=[KEY])
+    _patch_mlb_params(monkeypatch, park_bound=0.10)        # huella en mismatch
+    vacio = tmp_path / "otro_models"
+    vacio.mkdir()
+    monkeypatch.setattr(cal, "MODELS_DIR", vacio)           # global sin huellas
+    assert _live_calibration_markets(models, "mlb") == []
+
+
+def test_health_unreadable_fingerprint_registry_counts_nothing(models):
+    """Registro ilegible: el servicio sirve en crudo, asi que health no cuenta."""
+    from sqp.monitoring.health import _live_calibration_markets
+    _put_live()
+    _fp_file(models).write_text("{no es json", encoding="utf-8")
+    assert _live_calibration_markets(models, "mlb") == []

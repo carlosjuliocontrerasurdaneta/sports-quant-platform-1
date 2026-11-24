@@ -1,7 +1,7 @@
 ---
 tags: [tareas, sqp]
 creada: 2026-07-08
-actualizada: 2026-11-22
+actualizada: 2026-11-24
 ---
 
 # Tareas
@@ -12,10 +12,10 @@ Pendientes activos del proyecto, por prioridad. Al completar una: marcarla, anot
 
 Ver [[Bitácora/2026-11-22]], `audit/latest/STATUS.md`.
 
-- [ ] **Portero NHL (AUD-003, Enmienda 6):** `pre1.json` ya no es válido. Sobre el HEAD del commit de la remediación, con el árbol limpio y la instantánea `portero-nhl-20261121`, toca:
+- [x] **Portero NHL (AUD-003, Enmienda 6):** `pre1.json` ya no es válido. Sobre el HEAD del commit de la remediación, con el árbol limpio y la instantánea `portero-nhl-20261121`, toca:
   1. `--parity-only`; **hecho 2026-11-23 sobre `901ba7b`: PARIDAD OK** (n = 33.200, a 1e-12; 13.711 s);
   2. `--pre` nuevo, registrando el HEAD y los hashes; **hecho 2026-11-23: `pre2.json`**, idéntico a `pre1.json` salvo `git_head` y duración (mismos 7 hashes, recuentos, cobertura, particiones y potencia);
-  3. modo completo con `--pre-json` del nuevo `--pre`, sin nada en medio; **lanzado 2026-11-23 13:03** (`completo.json` en `C:\dev\sqp-snapshots\portero-nhl-20261121-out\`). Veredicto: Fable, antes de cualquier commit.
+  3. modo completo con `--pre-json` del nuevo `--pre`, sin nada en medio; **hecho 2026-11-23 (13:03–21:26): RECHAZA** (M2 y M1; veredicto Fable). `goalie_beta` = 0, fase 2 no se ejecuta, captura de probables se mantiene. Informe: `docs/research/2026-11-23-resultado-portero-nhl.md`.
 
   Es de clase escalada: Fable.
 - [x] **AUD-005 (2026-11-23, `507a7af`):** re-liquidadas **34** filas NCAAB (24 en `graded_ncaab`, 10 en `settled_ncaab`, 12 eventos; las 28 de la auditoría más 2 eventos del 22-11) con `scripts/repair_aud005_20261123.py`. Autorización expresa del operador; Fable APTO CON CAMBIOS, aplicados. Solo cambian `result`, `pnl` y `flags` (verificado contra la copia). Copia y manifiesto: `data/backups/repair-aud005-20261123/20261123T210446Z/`. Ver [[Bitácora/2026-11-23]].
@@ -25,7 +25,7 @@ Ver [[Bitácora/2026-11-22]], `audit/latest/STATUS.md`.
 
   Hoy se aplican con un aviso. **Evidencia OOS 2026-11-23** (filas posteriores a cada promoción, deduplicadas): `mlb_spreads` ΔBrier calibrado−crudo −0,0003 [IC95 −0,0042, +0,0036], n = 980/486 eventos; `wnba_spreads` −0,0163 [−0,0344, +0,0042], n = 178/63. Ninguno empeora el crudo: no hay base para retirarlos.
 - [ ] **Decisión registrada antes de reactivar el gate CLV (AUD-011):** incluir push y medias en el CLV, y aplicar `validate_book_contracts` al cierre. Si se adopta, hay que cambiar a la vez `test_compute_clv_ignores_push_and_void` y la documentación.
-- [ ] **Residual (AUD-009):** `monitoring/health.py::_live_calibration_markets` informa un `model_mismatch` como calibrado. Solo afecta al informe.
+- [x] **Residual (AUD-009), 2026-11-24:** `health._live_calibration_markets` ya no cuenta como calibrada una clave en `model_mismatch` (lee el registro de huellas de su `models_dir`); 2 tests nuevos.
 - [ ] **Verificación independiente** de la ronda: fase «Verificación independiente» del contrato de auditoría.
 
 ## Pendientes al cierre del 2026-11-13
@@ -201,7 +201,7 @@ Ver [[Bitácora/2026-11-22]], `audit/latest/STATUS.md`.
   - Falta comparar contra las claves ESPN de `data/historical/`, que la sesión no tiene permiso de leer.)
 
   **[x] RESUELTO 2026-11-10:** el lado ESPN está verificado y hay 0 nombres de cuotas sin pareja en Liga MX, UCL y Chile (ver `known-issues.md`). KI-002: verificar nombres ESPN vs Odds API en soccer cuando el Apertura MX reactive la liga (~post 19-jul); re-validar dc_rho de UCL/Chile con temporada nueva.
-- [ ] KI-006 (parcial): moneyline MLB/NHL sigue sin señal específica validada (abridor refutado ×2 — no re-perseguir; portero NHL construido e inactivo con `goalie_beta=0` desde `299a30f`, pendiente de su pre-registro, alto riesgo de rechazo).
+- [ ] KI-006 (parcial): moneyline MLB/NHL sigue sin señal específica validada (abridor refutado ×2 — no re-perseguir; portero NHL construido e inactivo con `goalie_beta=0` desde `299a30f`; su pre-registro se midió el 2026-11-23: **RECHAZA**, ver `docs/research/2026-11-23-resultado-portero-nhl.md`; reabrir solo con una forma nueva pre-registrada).
 - [x] KI-005: vendor de resultados para Frauen-Bundesliga. **RESUELTO 2026-09-06 por retirada de la liga** (`.claude/memory/known-issues.md`, KI-005); marcado en la revisión de pendientes del 2026-11-09.
 - [ ] NFL OOS: requiere mejora `--start/--end` en `backfill_historical_odds.py` (ventana Sept 2025–Feb 2026); sin gasto hasta decidirlo.
 - [ ] KI-016: decidir si `run_daily.py` se deprecia o queda como herramienta manual/demo.

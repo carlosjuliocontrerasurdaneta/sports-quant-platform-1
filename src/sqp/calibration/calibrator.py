@@ -567,10 +567,11 @@ def _current_model_fingerprint(key: str) -> tuple[dict | None, str | None]:
     return {"sha256": digest.hexdigest(), **payload}, None
 
 
-def _read_fingerprint_registry() -> dict | None:
+def _read_fingerprint_registry(path: Path | None = None) -> dict | None:
     """{} si el fichero no existe; None si existe y no se puede leer (quien lo
-    consume para SERVIR debe tratarlo como no verificable)."""
-    path = _fingerprint_registry_path()
+    consume para SERVIR debe tratarlo como no verificable). ``path`` permite
+    leer el registro de otro directorio de modelos (``monitoring/health.py``)."""
+    path = path or _fingerprint_registry_path()
     if not path.exists():
         return {}
     try:
@@ -644,12 +645,14 @@ def _fingerprint_diff(old: dict, new: dict) -> str:
     return "; ".join(diffs) or "huella distinta"
 
 
-def model_fingerprint_status(key: str) -> tuple[str, str | None]:
+def model_fingerprint_status(key: str, registry_path: Path | None = None
+                             ) -> tuple[str, str | None]:
     """(estado, detalle) de la huella live de ``key``: ``match`` | ``legacy``
     (sin huella registrada: comportamiento previo a AUD-009) | ``mismatch``
     (huella distinta de la configuracion actual, no calculable o registro de
-    huellas ilegible)."""
-    reg = _read_fingerprint_registry()
+    huellas ilegible). ``registry_path`` (opcional) lee el registro de huellas
+    de otro directorio de modelos; por defecto, el de ``MODELS_DIR``."""
+    reg = _read_fingerprint_registry(registry_path)
     if reg is None:
         return "mismatch", "registro de huellas ilegible"
     rec = reg.get(key)

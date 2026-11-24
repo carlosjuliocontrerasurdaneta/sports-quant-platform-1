@@ -98,7 +98,7 @@ def _live_calibration_markets(models_dir: Path, league: str) -> list[str]:
         return []
     if not isinstance(methods, dict):
         return []
-    from sqp.calibration.calibrator import is_sandbox_key
+    from sqp.calibration.calibrator import is_sandbox_key, model_fingerprint_status
     prefix = f"{league}_"
     out: list[str] = []
     for key, method in methods.items():
@@ -108,8 +108,15 @@ def _live_calibration_markets(models_dir: Path, league: str) -> list[str]:
             # decia calibration=True con `mlb_h2h` servido en crudo (AUD-003).
             continue
         suffix = {"isotonic": "iso", "beta": "beta"}.get(str(method))
-        if suffix and (models_dir / f"{key}_calibration_{suffix}.joblib").exists():
-            out.append(str(key)[len(prefix):])
+        if not (suffix and (models_dir / f"{key}_calibration_{suffix}.joblib").exists()):
+            continue
+        # Un calibrador desligado del modelo con el que se valido
+        # (`model_mismatch`, AUD-009) se sirve EN CRUDO: no cuenta como vivo.
+        # Residual de audit-2026-11-22: antes se informaba como calibrado.
+        if model_fingerprint_status(
+                str(key), models_dir / "calibration_model_fingerprints.json")[0] == "mismatch":
+            continue
+        out.append(str(key)[len(prefix):])
     return sorted(out)
 
 
