@@ -26,7 +26,9 @@ Ver [[Bitácora/2026-11-22]], `audit/latest/STATUS.md`.
   Hoy se aplican con un aviso. **Evidencia OOS 2026-11-23** (filas posteriores a cada promoción, deduplicadas): `mlb_spreads` ΔBrier calibrado−crudo −0,0003 [IC95 −0,0042, +0,0036], n = 980/486 eventos; `wnba_spreads` −0,0163 [−0,0344, +0,0042], n = 178/63. Ninguno empeora el crudo: no hay base para retirarlos.
 - [ ] **Decisión registrada antes de reactivar el gate CLV (AUD-011):** incluir push y medias en el CLV, y aplicar `validate_book_contracts` al cierre. Si se adopta, hay que cambiar a la vez `test_compute_clv_ignores_push_and_void` y la documentación.
 - [x] **Residual (AUD-009), 2026-11-24:** `health._live_calibration_markets` ya no cuenta como calibrada una clave en `model_mismatch` (lee el registro de huellas de su `models_dir`); 2 tests nuevos.
-- [ ] **Verificación independiente** de la ronda: fase «Verificación independiente» del contrato de auditoría.
+- [x] **Verificación independiente** de la ronda (2026-11-24, Fable 5.2, solo lectura): **APTO CON PENDIENTES**. 10 verificado-corregido, AUD-009 mitigado, AUD-011 parcial (P4), AUD-006 no aplicable; sin regresiones. Ver `audit/latest/VERIFICATION.md` y [[Bitácora/2026-11-24]].
+- [ ] **OBS-001 (P4, opcional):** `evaluation/feature_shadow.py` lee `results_*.csv` en crudo, sin deduplicar `game_id`. Es un protocolo congelado con hash de la fuente: decidir antes si cambia el instrumento.
+- [ ] **OBS-002 (P4, opcional):** el respaldo `runner.exact_history_scores_map` no acepta la orientación invertida en sede neutral (el partido expira como `stale_void`). Si se adopta, hay que usar la guarda de consistencia del script de AUD-005.
 
 ## Pendientes al cierre del 2026-11-13
 

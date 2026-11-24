@@ -1162,3 +1162,10 @@ Auditoría integral (segunda pasada, no ciega) sobre el árbol sucio. 4 hallazgo
 - Suite rápida 2.962 passed; ruff y mypy limpios. Detalle en `Obsidian/Bitácora/2026-11-22.md` y `audit/latest/`.
 - Pendiente del operador: re-liquidar 28 filas NCAAB (AUD-005); decidir `mlb_spreads`/`wnba_spreads` sin huella (AUD-009); decisión CLV push/contratos antes de reactivar el gate (AUD-011).
 - Lección: `sed -i` en Git Bash convierte BAT CRLF a LF; editar BAT con Python a nivel de bytes.
+
+## 2026-11-23/24 — Portero NHL RECHAZA, AUD-005 re-liquidado y verificación de `audit-2026-11-22`
+
+- Portero NHL medido (modo completo sobre `901ba7b`): RECHAZA en M2 y M1; `goalie_beta` 0; prohibido re-medir esta forma (`9054f9c`).
+- AUD-005: 34 filas NCAAB re-liquidadas (`507a7af`). Residual AUD-009 de `health.py` corregido (`9054f9c`).
+- Verificación independiente (Fable 5.2, solo lectura) 2026-11-24: APTO CON PENDIENTES; sin regresiones; OBS-001/002 P4 opcionales. Ver `audit/latest/VERIFICATION.md` y `Obsidian/Bitácora/2026-11-24.md`.
+- Revisión general: ruff/mypy limpios, pip-audit sin CVE, tareas rc 0. Lección: la suite completa local tarda >1 h en 2 núcleos (CI ~10 min); `test_audit_log_concurrency` hace timeout con la CPU cargada y pasa aislado.

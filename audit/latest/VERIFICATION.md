@@ -1,204 +1,162 @@
-# VERIFICATION — ronda `audit-2026-11-03`
+# VERIFICATION — ronda `audit-2026-11-22`
 
-- **Fecha:** 2026-11-04 (UTC 12:01 al empezar a escribir).
-- **Verificador:** subagente independiente con Fable 5.1 (`claude-fable-5-1`), en solo lectura del proyecto. Lo despachó la sesión principal, que coordinó la remediación pero no la verifica. El verificador no implementó nada de esta remediación.
-- **Procedimiento:** `audits/prompts/verificar-remediacion.md` (fuente: `.claude/automation/audit-workflow.md`, «Verificación independiente»).
+- **Fecha:** 2026-11-24.
+- **Verificador:** subagente independiente con Fable 5.2 (`claude-fable-5-2`). Trabajó en solo lectura del proyecto y no implementó nada de esta remediación. Lo despachó la sesión principal, que coordinó la remediación pero no la verifica. La sesión principal transcribe aquí su informe sin cambios de fondo; solo limpia la redacción del recuento.
+- **Procedimiento:** `audits/prompts/verificar-remediacion.md` (fuente: `.claude/automation/audit-workflow.md`, «Verificación independiente»). El formato sigue a `audit/audit-2026-11-03/VERIFICATION.md`, archivado.
 
 ## Veredicto: APTO CON PENDIENTES
 
-Regla aplicada: la primera aplicable de las cuatro del contrato es la 3.
+Se aplica la regla 3 del contrato, que es la primera aplicable.
 
-- **No hay NO APTO.** El único P1, AUD-002, está corregido: el BAT real espera al árbol limpio y aborta con centinela solo al agotar el plazo (4 escenarios ejecutados contra el BAT real copiado a un repo temporal). Ninguna regresión confirmada es P0/P1. No se encontró ninguna corrección importante con evidencia inválida.
-- **No hay VERIFICACIÓN INCOMPLETA.** Cada ID tiene evidencia actual: tests acotados (398 + 429 passed, ver §4), `ruff` y `mypy` en rc 0, CI de `786daeb` verde en las 7 tareas de test, reproducciones independientes y lectura en vivo del Programador de tareas.
-- **Quedan pendientes menores:** 2 regresiones LOW/P4 (REG-001, REG-002), un defecto preexistente con la misma causa raíz que AUD-006 y no extendido (NEW-001, P3), AUD-022 bloqueado por decisión del operador (P4), y riesgos residuales declarados en AUD-014, AUD-016, AUD-018 y AUD-019.
-- Este dictamen califica solo la remediación evaluada. No afirma ventaja predictiva ni rentabilidad, y no garantiza ausencia absoluta de defectos.
+- **No es NO APTO.**
+  - Los tres P1 están corregidos con evidencia actual:
+    - **AUD-001:** el CI de `main` está verde en `9054f9c` y la issue #8 está cerrada.
+    - **AUD-002:** ya no queda ningún `if errorlevel 1` en los BAT versionados.
+    - **AUD-003:** la paridad se cumple en los tests, y `--parity-only` dio OK a 1e-12 sobre la instantánea congelada.
+  - No hay ninguna regresión confirmada (ningún `REG-###`).
+  - No hay ninguna corrección importante con evidencia inválida.
+- **No es VERIFICACIÓN INCOMPLETA.** Todos los IDs tienen evidencia actual:
+  - 536 tests acotados en verde (511 + 25);
+  - reproducciones propias de AUD-006 y AUD-013;
+  - comparación de agregados de la re-liquidación de AUD-005 contra su copia;
+  - estado vivo de los calibradores (AUD-009);
+  - CI completo verde en HEAD.
+- **Quedan pendientes menores:**
+  - **AUD-011:** parcial, P4. Push, medias y contratos del cierre siguen sin cambios por decisión registrada.
+  - **AUD-009:** riesgo residual. `mlb_spreads` y `wnba_spreads` siguen en estado legacy y se aplican sin huella hasta que decida el operador.
+  - Dos observaciones LOW/P4 de rutas alternativas (OBS-001 y OBS-002).
+  - Persistentes de la ronda anterior: el historial del Programador sigue deshabilitado y AUD-022 sigue bloqueado.
+- Este dictamen califica solo la remediación evaluada. No afirma ventaja predictiva ni rentabilidad, y no garantiza la ausencia absoluta de defectos.
 
 ## 1. Alcance, base, metodología y limitaciones
 
 ### Base
 
-- `main` @ `786daeb26bdd6dfcd3e5994005ed8ef9fc46bac6`. Árbol limpio al empezar (`git status --porcelain` vacío).
-- Remediación evaluada: `ead24b2`, `77110b4`, `df015bf`, `1e50400`, `914707c`, `1832272`, `4d10703`. `786daeb` solo toca documentación (`audit/latest/*`, memoria y bitácora), comprobado con `git diff --stat 4d10703..786daeb`.
-- Línea base de diagnóstico: `FINDINGS.md` (sha256 `b47b29e9…`) y `BACKLOG.md` (`d07b1b29…`), sin modificar.
-- Fuente de verdad: el código actual. `CHANGES.md` y `VALIDATION.md` son evidencia secundaria del implementador.
+- `main` @ `9054f9c02ce588b20cc66eab2b74484477287052`. El árbol estaba limpio al empezar y al terminar (`git status --porcelain` vacío).
+- **Remediación evaluada:** `git log 9de724f..HEAD`. Commits de código y datos:
+  - `e23634b`;
+  - `aadb9ab`;
+  - `507a7af` (script de AUD-005);
+  - `9054f9c` (residual de `health.py` en AUD-009, más la documentación del portero NHL).
+- **Commits solo de documentación:** `901ba7b`, `f2747b8` y `23eaf86`. Para `901ba7b` y `f2747b8` se comprobó con `git show --stat`. `23eaf86` solo toca la Bitácora de Obsidian.
+- `9de724f` es la base del diagnóstico. AUD-001 depende de publicarlo, y se evalúa por el CI.
+- **Línea base:** `FINDINGS.md` y `BACKLOG.md` de `audit/latest/`, sin modificar. `CHANGES.md`, `VALIDATION.md` y `STATUS.md` son evidencia secundaria. La fuente de verdad es el código actual.
+- Desde `901ba7b` (HEAD de la ejecución del portero) hasta HEAD, en `src/`, `scripts/` y `configs/` solo cambian:
+  - `scripts/repair_aud005_20261123.py` (nuevo);
+  - `src/sqp/calibration/calibrator.py` y `src/sqp/monitoring/health.py` (residual de AUD-009).
+
+  Ni `measure_goalie_nhl.py` ni `engine.py` cambian después de la ejecución del pre-registro.
 
 ### Método por ID
 
-1. Reconstruir la causa original (`FINDINGS.md`, `claude/REPORT.md`).
-2. Leer el parche (`git show <commit>`) y sus llamadores (`grep` sobre `src/` y `scripts/`).
-3. Reproducir cuando era seguro: scripts propios en el scratchpad de la sesión, directorios temporales, `SQP_LOG_DIR` apuntando fuera de `logs/`.
-4. Ejecutar los tests relevantes y comprobar cada criterio de aceptación de `BACKLOG.md`.
+1. Reconstruir la causa original (`FINDINGS.md`, `claude/REPORT.md` §3).
+2. Leer el parche (`git diff 9de724f HEAD -- <fichero>`) y sus llamadores (`git grep` sobre `src/` y `scripts/`).
+3. Reproducir cuando era seguro. Se usaron scripts propios en el scratchpad, directorios temporales y `SQP_LOG_DIR` fuera de `logs/`.
+4. Ejecutar los tests acotados y comprobar cada criterio de aceptación de `BACKLOG.md`.
 5. Buscar regresiones, rutas alternativas, síntomas ocultados y fallos trasladados.
 
-### Evidencia secundaria evaluada
+### Exclusiones (no son cierres)
 
-Los 10 candidatos de una revisión de código previa (una sola pasada, sin verificar), recibidos por mensaje de la sesión principal. El fichero indicado (`…/tasks/ae2fea1f2f1cf3035.output`) tenía 0 bytes. Resultado de cada uno en §3.
-
-### Exclusiones
-
-- No se ejecutaron el BAT de producción, `validate_oos` completo ni `scripts/research/intraday_gate_analysis.py`.
-- Sin llamadas a Odds API ni a servicios de pago; sin escrituras en GitHub; sin commits ni push.
-- No se re-ejecutó localmente la suite completa (≈57 min). Se cita como secundaria la del implementador (3502 passed, 1 skipped sobre `4d10703`) y como evidencia independiente el CI de `786daeb` (`gh run view 41786550657`: success).
+- No se ejecutaron los BAT de producción, la medición del portero NHL (prohibido re-ejecutarla: veredicto RECHAZA del 2026-11-23) ni ningún script que escriba en `data/`.
+- No hubo llamadas a Odds API ni a servicios de pago, ni escrituras en GitHub, commits o push.
+- No se re-ejecutó localmente la suite completa (máquina de 2 núcleos con otra suite corriendo). La evidencia de la suite completa (`pytest -q`, `ruff check src scripts tests` y `mypy src`) es el CI de `9054f9c`.
+- MKT-004, MKT-005 y SEC-004 siguen como no confirmados de la línea base; no se revalidaron.
 
 ### Limitaciones
 
-- `.env` no se leyó (denegado). Por eso `PICK_MODE` efectivo es NOT_VERIFIABLE. Indicio indirecto: los `candidates_*.csv` del run del 2026-11-03 (23:53 UTC) no llevan ningún flag `accuracy_mode`, y el yaml dice `picks.mode: edge`.
-- No se leyeron árboles de `logs/` ni datasets completos. La única lectura de datos fue un agregado programático del stream servido graduado para simular la migración del gate en un directorio temporal (§2, AUD-001).
-- La afirmación de Fable de que 13 tests nuevos de G1 fallan sobre la base no se re-ejecutó. La discriminación se comprobó con una reproducción propia (§2, AUD-001).
+- La evidencia de `--parity-only`, del `--pre` #2 y del modo completo de AUD-003 está fuera del repositorio (`C:/dev/sqp-snapshots/portero-nhl-20261121-out/`). Se leyó en solo lectura: `parity2.log` dice PARIDAD OK, el `git_head` de `pre2.json` es `901ba7b` y el SHA-256 de `completo.json` coincide con el declarado. No se re-ejecutó.
+- La revisión de Fable previa al commit (VALIDATION.md) es evidencia secundaria no reproducible aquí.
+- Solo se leyeron agregados de datos: la comparación programática de AUD-005 y el recuento de `void` residuales por liga.
 
 ### Efectos laterales
 
-- Ninguno sobre el proyecto. La simulación del gate escribió solo en un directorio temporal del sistema, que se borró. Los logs de los scripts fueron a `SQP_LOG_DIR` en el scratchpad.
-- Los tests escribieron en `.codex-tmp/verif-a` y `.codex-tmp/verif-b`, como pide el contrato.
+- Ninguno sobre el proyecto.
+- pytest escribió en el scratchpad de la sesión (`verif/bt1` y `bt2`), con `SQP_LOG_DIR` también fuera de `logs/`.
+- La reproducción de AUD-006 usó un directorio temporal del sistema, que se borró.
 
 ## 2. Estado por ID
 
-| ID | Prio. | Estado de verificación | Evidencia | Riesgo residual |
+| ID | Prio | Estado de verificación | Evidencia | Riesgo residual |
 |---|---|---|---|---|
-| AUD-001 | P2 | **verificado-corregido** | `_ev_lado_del_modelo` (`prediction_gate.py`) implementa §2.1 del re-pre-registro: cara de mayor `e_m>0` por (evento, mercado, run), precio `min(mediana, ejecución)`, push dentro, `n_ev=0` deniega. Reproducción propia (2 vías a −110, ambas caras, 600 eventos): modelo informativo → `ev_flat=−0,0455` (lo que antes bloqueaba) pero `ev_lado_modelo=+0,217`, `allowed=True`; modelo = mercado → no pasa. Migración simulada sobre copia del registro vivo en dir temporal: 74 cortes, 0 cambios de `allowed/latched/reason/entry_test_at`, solo crecen `n` de chile/epl/laliga/seriea `spreads` (+3/+1/+4/+2, todos < 300), igual que declara CHANGES. n máximo de un corte no agotado: 224 (`nhl`). | La métrica no tiene umbral de `n_ev` ni test propio, por diseño pre-registrado (§2.1). Pasar el gate no promete rentabilidad. |
-| AUD-002 | **P1** | **verificado-corregido** | `DIARIO_COMPLETO.bat` [0a] + `scripts/wait_for_clean_tree.ps1`: espera hasta 180 min (cada 900 s) y solo entonces `:error_arbol`. `tests/test_diario_espera_arbol.py` (BAT real en repo temporal: plazo agotado → rc 1, centinela, `data/` intacto; limpieza durante la espera → continúa; escape; árbol limpio) pasa. Tarea `SQP_Diario_Completo_Cdev`: `ExecutionTimeLimit=PT72H`, así que la espera no la mata. Árbol limpio hoy. | Arranque hasta 3 h tarde con árbol sucio. Mensaje de log engañoso tras la espera (REG-002). |
-| AUD-003 | P2 | **verificado-corregido** | Reproducido: `write_prediction_gate(..., min_n=10)` → `ValueError`, directorio vacío. `update_prediction_gate.py --alpha 0.01` sin `--dry-run` → rc 2 antes de cargar datos (escritor sustituido por un centinela que no llegó a llamarse). Únicos llamadores de producción: `run_all.py:130` y el propio script, ambos con umbrales canónicos. `umbrales_de_prueba` no aparece en `src/` ni `scripts/` fuera de la definición. | — |
-| AUD-004 | P2 | **verificado-corregido** | `_family_default` quita solo `TUNED_KEYS`; `_freeze_on_train` parte de la canónica sin ellas; ya no se fuerza `pitcher_bound=0`. `test_validate_oos_frozen_params` y `test_validate_oos_exit_code` pasan. | `main()` no ejecutado (prohibido en esta fase). |
-| AUD-005 | P2 | **verificado-corregido** | `stake_price=min(mediana, ejecución)` en Kelly y elegibilidad (`daily.py`); guarda `_ev_ejecucion_no_positivo`; `settle_price=exec_price`; `settle._settle_px` cae a `price_decimal` si falta (filas antiguas idénticas). Revalidación no reescribe precios (solo lee `price_decimal`). `test_audit_g2_precio`, `test_settle_*` pasan. | Con `execution.books` vacío no hay cambio práctico. El ledger liquida a la cuota de ejecución y la condición 2 del gate mide a `min(·)`: distinto por diseño (ver candidato 1, §3). |
-| AUD-006 | P2 | **verificado-corregido** | Reproducido: 100 filas buenas + 1 malformada → original movido a `.corrupt.<UTC>` con hash idéntico, `log.error`, log nuevo con solo la fila nueva. `EmptyDataError` sigue contando como vacío. | Mismo patrón en otros escritores, preexistente y fuera del alcance del hallazgo: NEW-001. |
-| AUD-007 | P2 | **verificado-corregido** (código) | En esta máquina, `_scheduled_tasks_raw()` respondió en 6,4 s (con la suite de tests corriendo en paralelo) y `scheduled_tasks_status` leyó las 5 tareas `SQP_*`, con estado, último run y resultado. Timeout 120 s. Criterio de BACKLOG cumplido. | Historial del Programador **sigue deshabilitado** (`history_enabled: false`); el health lo avisa. Habilitarlo es del operador (consola elevada). |
-| AUD-008 | P3 | **verificado-corregido** | `_set_best_method` hace el read-modify-write bajo `locked(path)` con `_read_registry_strict` (OSError tras reintentos, JSON roto, no UTF-8 o raíz no objeto → propaga, no reescribe). El lector de servicio sigue devolviendo `{}`. `test_calibration_registry_robustness` pasa. | Un registro corrupto ya no se «auto-cura» al reentrenar: error visible (declarado). |
-| AUD-009 | P3 | **verificado-corregido** | `_persist_under_lock` recalcula con `bloquear_entradas=True` si `n_cortes>84` o la cota supera 5/82: `fuera_de_preregistro`, sin `entry_test_at`, sin pestillo. Tests de 85/84 cortes en `test_prediction_gate` pasan. Hoy: 74 cortes, `entradas_bloqueadas=False` en la simulación. | — |
-| AUD-010 | P3 | **verificado-corregido** (modo edge) | `adjusted_edge` llega al stream servido; `classify` devuelve NO BET si `ev_riesgo<min_edge`; el sufijo «(pre-penalización)» solo con `ev_riesgo` NaN pasado explícitamente (el clasificador congelado del pre-registro tier A conserva su motivo; `tests/research/test_measure_tier_a_gap.py` pasa). | En `pick_mode=accuracy` el tier contradice al motor: REG-001. |
-| AUD-011 | P3 | **verificado-corregido** (documentación) | Docstrings en `kelly.edge`, `tipster.expected_value`, `daily.py` y comentario de `min_edge` en `configs/default.yaml`. La fórmula no cambia, tal como pide el BACKLOG. | — |
-| AUD-012 | P3 | **verificado-corregido** (documentación) | Limitación documentada en `walk_forward_backtest` (`engine.py`) y `realized_roi_backtest` (`roi_engine.py`). Comportamiento sin cambios, conforme al criterio. | El backtest sigue sobreestimando la información de abridor MLB; re-tunear `pitcher_bound` exige el log de probables. |
-| AUD-013 | P3 | **verificado-corregido** | `_clv_frame` excluye cierres con `captured_for ≤ entrada` (ambos UTC: `_ts` con `utc=True`, `captured_out` de `load_closing_odds`) y colapsa a la media por evento antes del `binomtest`. El script de investigación pasa `captured_for`. `test_intraday_gate` pasa. | La media por evento fue elección del implementador. El script no se ejecutó (lee `data/`). |
-| AUD-014 | P3 | **verificado-mitigado** | Diff de conjuntos de `.claude/settings.json` frente a `ead24b2^`: allow pierde solo `Bash(gh pr merge *)`, deny gana 12 patrones `.env*`, `ask` y el resto de claves sin cambios. Ninguna regla `gh` en allow ni en `settings.local.json`. | Los patrones son de prefijo: `grep … .env`, `python -c open('.env')`, `Get-Content -Path .env` o rutas absolutas no quedan cubiertos (residual declarado en CHANGES). |
-| AUD-015 | P4 | **verificado-corregido** (parseo) | `parse_scoreboard(..., allow_draws=cfg["path"].startswith("soccer/"))`: 0-0 descartado con aviso fuera de fútbol. `test_espn_results` y `test_results_backfill` pasan. | Los 0-0 ya almacenados siguen ahí: la purga es del operador. |
-| AUD-016 | P4 | **verificado-mitigado** | `drop_duplicates` dentro de la llamada y `_drop_already_stored` bajo el lock cuando el `captured_at` aparece en la cola de 256 KB. `test_odds_store` pasa. | Un backfill del mismo `captured_at` fuera de la cola no se detecta; comparación textual (`"3.0"` frente a `"3"`). Nunca pierde datos. |
-| AUD-017 | P4 | **verificado-corregido** | Validación de raíz en `ml_train` (lista), `feature_store` (dict → caducado) y `feature_shadow` (dict con `predictions` lista y `protocol_sha256`). `test_json_root_validation_aud017` pasa. | — |
-| AUD-018 | P4 | **verificado-mitigado** | Token `pid:uuid`; antes de romper un lock caducado se releen token y mtime; el `finally` solo borra el propio. `test_lock_ownership_aud018` pasa. | Ventana TOCTOU mínima entre la relectura y `unlink`. Si falla la escritura del token (`token=""`), el `finally` podría borrar un lock ajeno sin token. La caducidad sigue siendo solo por mtime (candidato 5, §3). |
-| AUD-019 | P4 | **verificado-mitigado** | Eventos y cotizaciones malformados se omiten y cuentan (`last_parse_skipped`); `closing_capture` descuenta créditos en `finally`. `test_odds_parse_malformed_aud019` pasa. | Un `bookmaker` o `market` que no sea dict sigue lanzando `AttributeError` fuera del `try` (`odds_api.py`, `bm.get`/`mk.get`) y tumba la liga. Declarado como LOW opcional por Fable. |
-| AUD-020 | P4 | **verificado-corregido** (diagnóstico) | `complementarity_gap` + aviso si > 0,01 en `calibrator_defect`; no cambia ninguna probabilidad servida. Medición de VALIDATION (wnba_spreads 0,0019) no re-ejecutada. | La tolerancia 0,01 es solo diagnóstica (no gobierna decisiones). |
-| AUD-021 | P4 | **verificado-corregido** | `_graded_rows` + `_PESO_RESUELTO`: `half_*` con y del lado resuelto y peso ½; `d` de la unidad = Σw·d/Σw, exactamente §2.2 del re-pre-registro. Simulación: +3/+1/+4/+2 unidades en spreads de chile/epl/laliga/seriea. | Una unidad formada solo por medias cuenta como un ensayo completo, conforme al ejemplo pre-registrado (candidato 3, §3). |
-| AUD-022 | P4 | **abierto, bloqueado** (exclusión; no es un cierre) | `git log --all -- data/backups` sigue mostrando `18826e2` y `f4537f5`; el repositorio es `PUBLIC` (`gh repo view`). Reescribir el historial exige un force-push, prohibido sin orden expresa. | Pendiente de la decisión del operador: aceptar el riesgo o reescribir el historial. |
-| AUD-023 | P4 | **no aplicable** | `ci.yml:54,136` instala `pip install -e ".[dev]" -c requirements.lock`; el modo `--require-hashes` de pip no admite requisitos editables. El cambio era opcional en el BACKLOG. | Alternativa (lock de runtime con hashes) a decisión del operador. |
-| AUD-024 | P4 | **verificado-corregido** | Los 8 `uses:` de `.github/workflows/ci.yml` van fijados por SHA. CI de `786daeb`: success (`secret-scan`, `dependency-audit`, `test` 3.11–3.14, `test-windows`, `cierre-ci-verde`). | Anotación de GitHub: Node 20 obsoleto en `checkout`/`setup-python` fijados (aviso, no fallo). |
-| AUD-025 | P4 | **verificado-corregido** | `tools: Read, Glob, Grep` en los 9 agentes de solo lectura (cartographer, line-movement, odds-market, backtest, calibration, leakage, qa, security, sports-quant-auditor). `test_claude_system_contract` pasa. | `model: opus` fijo sigue en la frontmatter; el BACKLOG no pedía cambiarlo (lo mitiga `require-dispatch-model.sh`). `qa-engineer` ya no ejecuta tests. |
-| AUD-026 | P4 | **verificado-corregido** | Reproducido: `american_to_decimal(-50)` y `(99)` → `ValueError`; `±100` → 2,0; `150` → 2,5. | — |
+| AUD-001 | P1 | **verificado-corregido** | `gh run list`: el CI de `main` está en success desde `aadb9ab` (run 45091590076) hasta HEAD. Run 45390007237 sobre `9054f9c02ce5…`: success en dependency-audit, secret-scan, test 3.11–3.14, test-windows y cierre-ci-verde. `ci.yml` ejecuta `pytest -q` (suite completa, sin filtros de marcador), `ruff check src scripts tests` y `mypy src`. `gh issue view 8`: CLOSED el 2026-11-23T01:12:07Z. El run de `e23634b` falló, y el implementador declara y explica la causa (motivo del log), corregida en `aadb9ab`. | — |
+| AUD-002 | P1 | **verificado-corregido** | `git diff 9de724f HEAD -- DIARIO_COMPLETO.bat`: exactamente 3 líneas, `if errorlevel 1` → `if %ERRORLEVEL% neq 0` en las tres llamadas a `:verify_revision`. `git grep -i "errorlevel 1" -- '*.bat'` no devuelve nada. Fines de línea: el blob es LF (433 líneas, igual que la base) y la copia de trabajo es CRLF (433), conforme a `.gitattributes` (`*.bat eol=crlf`). `:verify_revision` sale con `exit /b 0/1`. `tests/test_run_status.py` pasa (lote A). | — |
+| AUD-003 | P1 | **verificado-corregido** | Parche: `_oracle_rows` traduce el centinela `""` de la E5(1) a una identidad sin apariciones (f = 1) y aborta si M2 o la base traen una identidad real. `retrospective_starters=True` en todos los brazos restituye la semántica de `04f3015`. `neutral_in_estimate=False` solo en la llamada de paridad. `walk_forward_backtest` tiene `neutral_in_estimate=True` por defecto y no hay otros llamadores que lo pasen, así que producción no cambia. Tests: exhibición, `test_parity_holds_with_neutral_rows`, `test_oracle_rejects_real_identity_outside_m1`, `test_backtest_parity.py` y `test_audit_backtest_remediation.py`: 25 passed. Aceptación «`--parity-only` sobre la instantánea»: `parity2.log` dice «PARIDAD OK (n=33200 …) a 1e-12». La Enmienda 6 está registrada antes del modo completo; el `--pre` #2 se hizo sobre `901ba7b`; el veredicto pre-registrado es RECHAZA (`completo.json`, SHA-256 `8d31b03b…860c`, verificado). `goalie_beta` no aparece en `configs/` (`git grep`), es decir, vale 0. | La medición no se re-ejecutó (prohibido). La Enmienda 6(a) enumera tres causas pero dice «en los dos casos» (errata de redacción, sin efecto). |
+| AUD-004 | P2 | **verificado-corregido** | `revalidation.py`: sin cotización de la casa de ejecución, si `p·consenso − 1 < min_edge` se revoca por el camino normal (precio = consenso, ejecución NaN, `reason="edge_below_min_no_execution"`). En caso contrario se mantiene `no_execution_price`. El caso `(None, 1.70, "revoke")` de `tests/test_audit_pipeline_repairs.py` comprueba `revoked == 1`, `skipped_no_price == 0`, `reval_price == consenso` y el motivo del log. `test_revalidation.py` pasa, incluido el motivo de los picks de consenso (marca `no_execution_quote`, no `isfinite`). | El precio de evaluación sin casa de ejecución es el consenso, una cota optimista frente a `min(consenso, ejecución)`. Para revocar es conservador en el sentido correcto: si ya falla con el consenso, fallaría también con el mínimo. |
+| AUD-005 | P2 | **verificado-corregido** (código y datos) | `settle._grade` acepta la selección si es el local de cuotas y el local de `/scores` es el visitante de cuotas; si no casa con ninguno, sigue siendo `void`. Los 4 tests nuevos (h2h, spreads con +9,25 → `half_win`, ningún equipo, tercer equipo) y `tests/settlement` pasan. Comparación propia, en solo lectura, de la copia `data/backups/repair-aud005-20261123/20261123T210446Z/`: <br>• el SHA de la copia es igual a `sha256_antes` del MANIFEST en los 2 ficheros; <br>• `graded_ncaab`: 24 filas cambiadas (12 h2h y 12 spreads, 12 eventos; `void`→`loss` 13, `void`→`win` 11); <br>• `settled_ncaab`: 10 filas (5 h2h y 5 spreads, 5 eventos; `void`→`loss` 6, `void`→`win` 4); <br>• solo difieren `result`, `flags` y `pnl` (`0.0`→`-0.0`, stake 0); <br>• el flag `regrade_aud005` coincide exactamente con las filas cambiadas; <br>• re-graduar con el marcador del MANIFEST y la lógica actual da 0 discrepancias; <br>• las filas posteriores se añadieron después (+100 y +70) y ninguna lleva el flag; <br>• no queda ningún `void` h2h/spreads sin `stale_void` en NCAAB. En el resto de ligas solo quedan `void` de filas `superseded`, por diseño. | El SHA actual ya no es `sha256_despues` porque la liquidación diaria añadió filas después (esperado). Ruta alternativa no cubierta: OBS-002. |
+| AUD-006 | P3 | **no aplicable, con evidencia** (falso positivo para producción) | `ResultsStore.load(dedupe_game_id=True)` (por defecto) aplica `_drop_repeated_game_ids` desde la ronda 2026-10-18. Reproducción sintética: alias distintos con el mismo `game_id` y un partido reanudado en dos fechas dan 1 fila cada uno (gana la última fecha/ingesta), y las filas legacy sin `game_id` se conservan. Resultado: 4 filas frente a 6 en crudo. Todos los llamadores de producción (`daily.py:909`, `feature_store`, `settlement/runner`, `pergame`, `patterns`, `team_totals_capture` y `goalie_backfill`) usan el valor por defecto. `dedupe_game_id=False` solo aparece en 3 scripts de investigación congelados con su propia regla. | Ruta alternativa que lee el CSV crudo: OBS-001. El CSV crudo sigue con duplicados por diseño (los datos crudos no se mutan). |
+| AUD-007 | P3 | **verificado-corregido** | `feature_shadow.capture_store` parsea `commence_time` y `captured_at` con `format="ISO8601"` y mantiene `errors="raise"`. El test con sellos mixtos pasa. El resto de lectores de `captured_at` (`revalidation`, `clv_movement`, `roi_engine`) ya usaban `format="mixed"`, y `markets.line_movement.instantes_utc` admite sellos mixtos (comprobado). | — |
+| AUD-008 | P3 | **verificado-corregido** | `load_calibration_training_history`: la fila liquidada sigue ganando el dedup y conserva su `result`, pero toma `adjusted_probability` de la fila servida con la misma clave (la primera no nula). Si la servida no lo tiene, conserva el suyo. `test_calibration_data.py` (2 tests nuevos), `test_calibrator.py` y `test_calibration_live.py` pasan. | No se re-midió sobre datos el 2,2 % de filas afectadas. |
+| AUD-009 | P3 | **verificado-mitigado** | Huella sha256 de los parámetros efectivos del adaptador en `calibration_model_fingerprints.json`: se captura en staging, se copia al promover y se borra en cualquier escritura live. Un mismatch da `model_mismatch` y se sirve en crudo (es reversible). `_CAL_WARN_STATES` incluye `model_mismatch`. Residual de `health.py` corregido en `9054f9c`: `_live_calibration_markets` ya no cuenta un `mismatch` como calibrado. `test_calibration_model_fingerprint.py` (incluidos los tests nuevos de `health`) y `test_health.py` pasan. Estado vivo (lectura): el registro solo tiene `mlb_spreads=beta` y `wnba_spreads=beta`, ambos `legacy` → `applied`. El fichero de huellas todavía no existe, de modo que hoy no cambia ninguna probabilidad servida. | Los dos calibradores legacy se aplican sin verificar el modelo hasta que decida el operador (revalidar y volver a promover, o retirar). La evidencia OOS del 23-11 citada en STATUS no se re-ejecutó. Límites declarados: no detecta cambios de código del adaptador ni de defaults internos ausentes del dict. |
+| AUD-010 | P4 | **verificado-corregido** | `degradation_metrics` usa `settle_price` si es finito y > 1, y si no `price_decimal`: la misma regla que `settle._settle_px`. Sin la columna no cambia nada. `test_degradation.py` (test nuevo con 2,2, NaN, 1,0 e inf) pasa. | — |
+| AUD-011 | P4 | **parcial (abierto, P4)** | Corregido: `compute_clv` excluye las filas con el token `superseded` (comparación por token, no por subcadena). `test_clv.py` y `test_clv_gate.py` pasan. Sin aplicar, por decisión registrada (veredicto Fable): incluir push y medias, aplicar `validate_book_contracts` al cierre y deduplicar por identidad las filas anteriores a KI-071 sin marca. El control compensatorio sigue vigente (`clv_gate.enabled=false`, solo diagnóstico). | Debe resolverse antes de reactivar el gate CLV. |
+| AUD-012 | P4 | **verificado-corregido** | `patterns.build_pick_history` usa `atomic_write_csv`, y `segments.segment_diagnostics_report` usa `atomic_write_bytes` + `atomic_write_csv`. `test_patterns.py` y `test_segments.py` pasan. | — |
+| AUD-013 | P3 | **verificado-corregido** | Reproducido con `route_classifier.classify` y la configuración actual: «auditoría integral del repositorio» y «haz una auditoria integral» van a `full-audit`; «promover calibrador …», «promover el calibrador» y «staging de calibrador …» van a `calibration-only`; un caso de control («revisa el bug…») sigue en `bugfix`. `test_claude_model_routing.py` pasa. | Observación informativa en OBS-004. |
 
-Recuento: 19 verificado-corregido, 4 verificado-mitigado (AUD-014, 016, 018, 019), 1 abierto-bloqueado (AUD-022), 1 no aplicable (AUD-023). Ninguno reabierto.
+**Recuento:**
 
-Nota sobre AUD-007: el STATUS de remediación decía «parcial» porque faltaba comprobarlo en la máquina real. Esa comprobación se hizo aquí. Habilitar el historial queda como acción del operador, no como defecto del código.
-
-## 3. Regresiones y candidatos de la revisión de código previa
-
-### Regresiones confirmadas
-
-**REG-001 — El tipster marca NO BET «descartado por el motor de riesgo» picks que el motor sí apuesta en `pick_mode=accuracy`**
-
-- **Relación:** introducida por AUD-010 (`1e50400`).
-- **Severidad:** LOW. **Confianza:** HIGH. **Evidencia:** REPRODUCED (función) + STATICALLY_VERIFIED (motor). **Prioridad:** P4.
-- **Archivo:** `src/sqp/evaluation/tipster.py:91` (`classify`); el motor en `src/sqp/pipeline/daily.py:1051-1070` (rama accuracy).
-- **Activación:** solo con `PICK_MODE=accuracy`. Producción parece estar en modo edge (yaml `picks.mode: edge`; 0 flags `accuracy_mode` en los candidates del 2026-11-03). `.env` no se pudo leer: NOT_VERIFIABLE.
-- **Observado:** `classify(ev=0.03, …, ev_riesgo=0.01, min_edge=0.02)` devuelve `('NO BET', 'descartado por el motor de riesgo (EV ajustado en ejecución < min_edge)')`. En modo accuracy el motor da stake plano sin filtro `min_edge`; solo la guarda de AUD-005 (EV ≤ 0 en ejecución) anula el stake.
-- **Esperado:** un tier coherente con el motor (criterio de AUD-010) en los dos modos soportados.
-- **Consecuencia:** un informe contradice al motor sobre picks con 0 < EV ajustado < `min_edge`. No mueve dinero, porque todo sigue en shadow o bajo el gate.
-- **Corrección mínima:** aplicar el descarte por `min_edge` solo en modo edge, o en accuracy descartar solo `ev_riesgo ≤ 0`.
-- **Prueba necesaria:** `tipster_table` con modo accuracy y una fila con EV ajustado de 0,01.
-
-**REG-002 — `wait_for_clean_tree.ps1` registra «git no pudo comprobar el árbol» cuando el árbol se limpió durante la espera**
-
-- **Relación:** introducida por AUD-002 (`ead24b2`).
-- **Severidad:** LOW. **Confianza:** HIGH. **Evidencia:** REPRODUCED. **Prioridad:** P4.
-- **Archivo:** `scripts/wait_for_clean_tree.ps1:26` (`return @(...)`) y `:37`.
-- **Activación:** el árbol está sucio al empezar la espera y se limpia antes de agotar el plazo.
-- **Observado:** en un repo temporal (fichero sucio revertido a los 3 s; `-IntervalSeconds 2`), la salida fue `arbol SUCIO (1 fichero(s))…` seguida de `git no pudo comprobar el arbol; se continua (falla abierto).`, con rc 0. PowerShell desenrolla el array vacío devuelto por la función a `$null`, y el llamador entra en la rama de fallo de git. La rama `Count -eq 0` y su mensaje «arbol limpio» son inalcanzables. Comprobado aparte: `function F { return @() }` da `$null`.
-- **Consecuencia:** el código de salida es correcto (continúa), así que no se pierde ningún run. Pero un árbol limpio y un fallo real de git son indistinguibles en `logs\diario_completo.log`. El BAT añade su propio «[0a] Arbol limpio tras la espera», que contradice la línea anterior. El test `test_si_el_arbol_se_limpia_durante_la_espera_el_flujo_continua` no lo detecta porque comprueba la línea del BAT.
-- **Corrección mínima:** `return ,@(...)`, o devolver un objeto con el estado de git separado.
-- **Prueba necesaria:** aserción sobre la ausencia de «git no pudo comprobar» en ese escenario.
-
-### Hallazgo nuevo preexistente (no es regresión)
-
-**NEW-001 — Otros escritores de logs siguen tratando `ParserError` como fichero vacío y reescriben perdiendo el historial (misma causa raíz que AUD-006, no extendida)**
-
-- **Severidad:** MEDIUM (misma clase de impacto que AUD-006: pérdida silenciosa de un rastro auditable, condicionada a un CSV corrupto). **Confianza:** HIGH. **Evidencia:** REPRODUCED (latch log) + STATICALLY_VERIFIED (resto). **Prioridad:** P3.
-- **Archivos:** `src/sqp/risk/prediction_gate.py:686-689` (`_append_latch_log`); `src/sqp/calibration/calibrator.py` (los tres escritores de `promotion_log.csv`).
-- **Preexistente:** el patrón ya estaba en la base del diagnóstico `a5d1860` (`prediction_gate.py:480` de entonces) y viene, al menos, de `7341150`. No lo introdujo la remediación; el hallazgo AUD-006 solo citaba `revalidation.py`.
-- **Observado:** un `prediction_gate_latch_log.csv` con 50 filas y una línea malformada queda, tras `_append_latch_log`, con **1** fila. Sin cuarentena ni error.
-- **Consecuencia:** se pierde el rastro de armados y liberaciones de pestillos (quién liberó, cuándo y con qué nota) y el historial de promociones de calibradores. El estado vigente del gate no se pierde, porque vive en `prediction_gate.json`.
-- **Corrección mínima:** el mismo tratamiento de AUD-006 (cuarentena `.corrupt.<UTC>` o propagar).
-- **No evaluado:** `daily.py:387` usa el mismo `except`, pero solo para saltarse un fichero en el cálculo del tope de exposición. Su impacto es distinto y no se verificó.
-
-### Candidatos de la revisión previa: resultado
-
-| # | Candidato | Resultado | Motivo |
-|---|---|---|---|
-| 1 | Ledger liquida a `settle_price` y el stake/gate usan `min(mediana, ejecución)` | **Descartado** como defecto (DISMISSED); observación | Es la regla diseñada por Fable para AUD-005: dimensionar de forma conservadora y cobrar lo que paga la casa de ejecución, acotada por `max_uplift`. La condición 2 a `min(·)` es la dirección conservadora fijada en §2.1 del re-pre-registro. Con `execution.books` vacío, la ejecución repite la mediana. Residual ya declarado: no se mide la deriva entre la cuota de ejecución registrada y la cobrada de verdad. |
-| 2 | Tipster NO BET contra el motor en modo accuracy | **Confirmado → REG-001** | Reproducido (ver arriba). |
-| 3 | Unidad solo con `half_*` cuenta como ensayo completo | **Descartado** | Es exactamente §2.2 del re-pre-registro: `d = Σw·d/Σw`. El ejemplo §3 («un `half_win` y un `half_loss`: condición 1 n = 2, 1 victoria») lo fija. Cambiarlo sería re-pre-registrar, no corregir un bug. |
-| 4 | `_append_latch_log` (y otros) siguen con `ParserError` → vacío | **Confirmado → NEW-001** (preexistente, no REG) | Reproducido (50 filas → 1). Estaba ya en la base `a5d1860`. |
-| 5 | La caducidad del lock es solo por mtime; un titular vivo > 300 s lo pierde | **Descartado** como regresión; riesgo residual de AUD-018 | Diseño preexistente (`LOCK_STALE_S=300` frente a `LOCK_TIMEOUT_S=120`); las secciones críticas son read-modify-write de décimas de segundo. Los locks nuevos de la remediación (registro de calibración, dedupe de `odds_store`) mantienen secciones cortas; el dedupe solo lee el fichero entero si el mismo `captured_at` ya está en la cola. El token de AUD-018 evita además que el titular antiguo borre el lock nuevo. No se demostró ninguna sección > 300 s. |
-| 6 | `Get-ArbolSucio` devuelve `$null` con árbol limpio | **Confirmado → REG-002** | Reproducido en repo temporal. |
-| 7 | La elección de la cara se hace tras filtrar los `void` | **Descartado** | §2.1, paso 5, del re-pre-registro: «Las filas `void` o sin resultado no entran». El código implementa lo pre-registrado. En la práctica un `void` anula el evento entero (todas las caras), no una sola cara. |
-| 8 | Regla `min(mediana, ejecución)` triplicada; `_usable` solo en tests | **Descartado** (calidad, sin consecuencia) | Las tres copias son equivalentes (el `np.where` anidado da `min(price, ej)` cuando `ej` es válido). Duplicación sin defecto demostrado. |
-| 9 | Chequeo canónico duplicado en el script; no comprueba `validation_start` | **Descartado** | El script no tiene opción `--validation-start`, así que no hay nada que comprobar. El chequeo temprano evita cargar datos y es defensa en profundidad; `write_prediction_gate` comprueba los tres. |
-| 10 | `_ev_ejecucion_no_positivo` nunca se dispara en modo edge | **Descartado** (cierto, pero no es defecto) | Con stake de Kelly a `min(price, exec)` y `min_edge = 0,02 > 0`, el EV en ejecución ya es > 0. La guarda es defensa en profundidad y sí actúa en accuracy (motivo de `1832272`). El comentario «Guarda universal» describe dónde se aplica, no que se dispare en ambos modos. |
-
-## 4. Validación global
-
-| Comando | rc | Resultado |
+| Estado | IDs | Total |
 |---|---|---|
-| `python -m pytest -q -p no:cacheprovider --basetemp=.codex-tmp/verif-a` sobre los 16 ficheros de test tocados por la remediación + `test_tipster`, `tests/research/test_measure_tier_a_gap`, `test_gate_status_cli`, `test_validate_oos_exit_code` | 0 | **398 passed** en 270,7 s |
-| `python -m pytest -q -p no:cacheprovider --basetemp=.codex-tmp/verif-b` sobre llamadores: `settlement/`, `test_bat_files_integrity`, `test_calibrator`, `test_claude_system_contract`, `test_closing_capture_markets`, `test_config_yaml_keys`, `test_espn_results`, `test_feature_shadow`, `test_feature_store`, `test_gate_block_visibility`, `test_health`, `test_html_report`, `test_intraday_scan`, `test_kelly`, `test_reports`, `test_requirements_lock`, `test_served_market_shrink`, `test_settle_candidates`, `test_settle_persist`, `test_settlement_math`, `test_storage` | 0 | **429 passed** en 683,4 s |
-| `ruff check src scripts tests` | 0 | All checks passed |
-| `mypy src` | 0 | Success: no issues found in 116 source files |
-| `gh run view 41786550657` (CI de `786daeb`) | 0 | success en las 9 tareas (alerta-ci-rojo omitida, como corresponde) |
-| `_scheduled_tasks_raw()` + `scheduled_tasks_status()` (solo lectura) | — | 5 tareas leídas en 6,4 s; `history_enabled: false` |
-| `Get-ScheduledTask SQP_Diario_Completo_Cdev` (solo lectura) | 0 | `ExecutionTimeLimit=PT72H`, disparo 12:00, `MultipleInstances=IgnoreNew` |
-| Reproducciones propias (`repro.py`, `repro2.py`, `gate_migr.py` en el scratchpad; repo temporal para el `.ps1`) | 0 | Resultados en §2 y §3 |
+| Verificado-corregido | AUD-001, 002, 003, 004, 005, 007, 008, 010, 012 y 013 | 10 |
+| Verificado-mitigado | AUD-009 | 1 |
+| Parcial abierto (P4) | AUD-011 | 1 |
+| No aplicable | AUD-006 | 1 |
+| Reabiertos | — | 0 |
 
-Suite completa: no re-ejecutada aquí. Como evidencia secundaria, la del implementador sobre `4d10703` dio 3502 passed y 1 skipped. Como evidencia independiente, el CI de `786daeb` ejecutó la suite en Linux (3.11–3.14) y Windows, y salió verde. `786daeb` no cambia código respecto de `4d10703`.
+## 3. Regresiones y hallazgos nuevos
 
-Clasificación: sin `NEW_REGRESSION` en tests, sin `PRE_EXISTING_FAILURE`, sin `ENVIRONMENTAL_FAILURE` en esta fase. REG-001 y REG-002 son regresiones funcionales que los tests actuales no cubren.
+**Regresiones (`REG-###`): ninguna.**
+
+- La suite completa es verde en CI sobre HEAD.
+- `neutral_in_estimate` conserva el comportamiento de producción por defecto.
+- La guarda de AUD-005 sigue anulando las selecciones que no casan con ningún equipo.
+- El motivo del log de AUD-004 ya no se confunde con los picks de consenso: el fallo de `e23634b` está corregido en `aadb9ab` y lo cubre el test.
+
+**Observaciones nuevas (no bloquean):**
+
+| ID | Relación | Sev / Prio | Evidencia | Descripción |
+|---|---|---|---|---|
+| OBS-001 | AUD-006 (ruta alternativa) | LOW / P4 | STATICALLY_VERIFIED (código); impacto INFERRED, no medido | `evaluation/feature_shadow.py:118-125,244-250` lee `results_{league}.csv` en crudo con `pd.read_csv` y no deduplica los `game_id` repetidos, así que el experimento sombra puede contar dos veces un partido reanudado o renombrado. No está en las tareas ni en los BAT y no afecta a los picks servidos. Opción: reutilizar `ResultsStore._drop_repeated_game_ids`. Como es un protocolo congelado con hash de la fuente, decidir antes si cambia el instrumento. |
+| OBS-002 | AUD-005 (ruta alternativa) | LOW / P4 | STATICALLY_VERIFIED (código); impacto no medido | El respaldo de liquidación `runner.exact_history_scores_map` empareja solo el par (local, visitante) **ordenado**. Si un partido de sede neutral con la orientación invertida no llega por `/scores`, no se gradúa por el histórico y expira como `stale_void` a los 3 días. Es conservador (no fabrica resultados), es anterior a la ronda y se relaciona con MKT-005. El script de reparación de AUD-005 sí buscaba la orientación invertida. |
+| OBS-003 | AUD-005 (datos) | Informativa | REPRODUCED | Las 19 filas re-liquidadas como `loss` llevan `pnl = -0.0` (stake 0), mientras la copia previa llevaba `0.0`. Es numéricamente igual y coincide con lo que escribe producción (`-row["stake"]` con stake 0). |
+| OBS-004 | AUD-013 | Informativa | STATICALLY_VERIFIED | La ruta `calibration-only`, que ahora recibe «promover calibrador», propone `model: sonnet`. Promover un calibrador cambia las probabilidades servidas, una clase que `CLAUDE.md` asigna a la escalada. El enrutador es consultivo, y la promoción exige aprobación humana y `model` en el despacho. Lo evalúa el operador; no es un defecto del hallazgo. |
+
+**Persistentes de la ronda anterior** (fuera de los IDs de esta ronda; no se convierten en cierre):
+
+- Historial del Programador de tareas: `wevtutil gl Microsoft-Windows-TaskScheduler/Operational` da `enabled: false`. Es del operador, en una consola elevada.
+- AUD-022 (2026-11-03): `git log --all -- data/backups` sigue mostrando `18826e2` y `f4537f5`, y el repositorio es `PUBLIC`. Sigue bloqueado por decisión del operador.
+- La copia nueva `data/backups/repair-aud005-20261123/` está ignorada (`.gitignore:16`), y `git ls-files data` solo lista `.gitkeep`.
+
+## 4. Comandos ejecutados
+
+| Comando | Resultado |
+|---|---|
+| `git log --oneline 9de724f..HEAD`, `git show --stat` de cada commit, `git status --porcelain` | 7 commits. Árbol limpio al inicio y al final |
+| `gh run list --branch main --limit 6`; `gh run view 45390007237 --json headSha,conclusion,jobs` | HEAD `9054f9c`: success, con las 8 tareas en success (alerta-ci-rojo skipped). `e23634b`: failure; `aadb9ab`, `901ba7b` y `23eaf86`: success |
+| `gh issue view 8` | CLOSED 2026-11-23T01:12:07Z |
+| `git grep -n -i "errorlevel 1" -- '*.bat'` | Sin resultados |
+| Recuento de CRLF/LF de `DIARIO_COMPLETO.bat` (copia de trabajo, blob de HEAD y blob de la base) | 433 CRLF en la copia de trabajo; 433 LF en los blobs |
+| Script propio de comparación de AUD-005 (solo lectura, agregados) | rc 0. Graded: 24 filas cambiadas. Settled: 10. 0 discrepancias al re-graduar |
+| Recuento de `void` h2h/spreads sin `stale_void` (todas las ligas, agregados) | NCAAB 0. En el resto solo `superseded` |
+| Reproducción sintética de AUD-006 (directorio temporal) | rc 0. 4 filas frente a 6 en crudo |
+| `route_classifier.classify` con 6 prompts | Rutas esperadas (ver AUD-013) |
+| `model_fingerprint_status` y `live_calibration_state` sobre el registro vivo (lectura) | `mlb_spreads` y `wnba_spreads`: legacy → applied |
+| `python -m ruff check` sobre los 13 ficheros/directorios cambiados | rc 0 («All checks passed!») |
+| Lote A: `python -m pytest -p no:cacheprovider` (con `SQP_LOG_DIR` y `--basetemp` fuera del proyecto) sobre `tests/test_run_status.py tests/test_audit_pipeline_repairs.py tests/test_revalidation.py tests/settlement tests/test_feature_shadow.py tests/test_odds_store.py tests/test_calibration_data.py tests/test_calibration_model_fingerprint.py tests/test_health.py tests/test_calibrator.py tests/test_calibration_live.py tests/test_degradation.py tests/test_clv.py tests/test_clv_gate.py tests/test_claude_model_routing.py tests/test_patterns.py tests/test_segments.py -q` | rc 0. **511 passed** (5 min 57 s) |
+| Lote B: mismo prefijo, sobre los 3 tests de paridad de `tests/test_measure_goalie_nhl.py` (exhibición, filas neutrales y oráculo), `tests/test_backtest_parity.py` y `tests/test_audit_backtest_remediation.py` | rc 0. **25 passed** (2 min 03 s) |
+| Lectura de `C:/dev/sqp-snapshots/portero-nhl-20261121-out/{parity2.log,pre2.json,completo.json}`; `sha256sum completo.json` | PARIDAD OK n = 33.200. `git_head` = `901ba7b…`. Veredicto RECHAZA. El SHA coincide con `8d31b03b…860c` |
+| `wevtutil gl …TaskScheduler/Operational`; `git log --all -- data/backups`; `gh repo view --json visibility`; `git check-ignore -v` de la copia de AUD-005 | `enabled: false`; 2 commits; PUBLIC; ignorada |
+
+La suite completa, `ruff check src scripts tests` y `mypy src` no se ejecutaron en local. Su evidencia es el CI de `9054f9c` (success).
 
 ## 5. P0/P1 abiertos
 
-Ninguno. AUD-002 (P1) está verificado-corregido. Ninguna regresión ni hallazgo nuevo es P0/P1.
+Ninguno.
 
-## 6. Pendientes y próxima acción
+## 6. Próxima acción
 
-1. **NEW-001 (P3):** extender la cuarentena de AUD-006 a `_append_latch_log` y a los escritores de `promotion_log.csv`. Toca rutas del candado `fable_gate` (`src/sqp/risk/**`, `src/sqp/calibration/**`), así que necesita revisión Fable antes del commit.
-2. **REG-002 (P4):** `return ,@(...)` en `wait_for_clean_tree.ps1` y una aserción sobre el mensaje en el test.
-3. **REG-001 (P4):** hacer que el descarte por `min_edge` del tipster dependa de `pick_mode`. Cambia el contrato del stream servido o del informe, así que es de clase de escalado.
-4. **AUD-022 (P4):** decisión del operador. Aceptar el riesgo (el repositorio es público desde `18826e2`) o reescribir el historial desde su terminal.
-5. **AUD-007 (operador):** habilitar el historial del Programador de tareas desde una consola elevada.
-6. **AUD-015 (operador):** purgar los 0-0 de relleno ya almacenados, si se quiere.
-7. Residuales opcionales de AUD-014, AUD-016, AUD-018 y AUD-019 (§2).
-8. **Primera ejecución real del gate nuevo:** el run de las 12:00 del 2026-11-04 será la primera escritura del registro con `criterio_condicion2` (el vivo es del 2026-11-03 23:52 UTC, anterior a `914707c`). Conviene confirmar después que aparecen `criterio_condicion2` y `entradas_bloqueadas: false` y que no hay transiciones.
-
-## 7. Addendum: verificación independiente de `f5b80e2` (2026-11-07)
-
-**Alcance:** REG-001, REG-002 y NEW-001, corregidos en `f5b80e2` con revisión Fable previa al commit. **Verificador:** subagente nuevo Fable 5.1 (`claude-fable-5-1`), solo lectura, que no implementó nada. **Base:** `0c6fb9f` (HEAD; posterior a `f5b80e2`, solo docs y graphify). **Árbol:** solo los dos `??` preexistentes (`.claude/settings.json.graphify-bak`, `.github/copilot-instructions.md`).
-
-| ID | Estado de verificación | Evidencia |
-|---|---|---|
-| REG-001 | verificado-corregido | `tipster.py:112-120` (`_marca_accuracy`, celda a celda) y `:193-197` (`min_edge=None` solo en filas marcadas); `daily.py:1044-1048` escribe `served_stream;accuracy_mode` con la misma condición que `:1055`. Reproducido: las filas marcadas van a tier C; las no marcadas y `accuracy_mode_x` siguen en NO BET. Modo edge: 0 diferencias frente a `f5b80e2^` en 3.000 filas × 4 `min_edge` × 2 `prob_col` (`assert_frame_equal`). Tier A congelado intacto (`measure_tier_a_gap.py` carga el blob del tag). Ningún consumidor de `flags` compara por igualdad exacta. Discrepancia menor: `prediction_gate.py` no cambió para REG-001, solo para NEW-001. |
-| REG-002 | verificado-corregido | `wait_for_clean_tree.ps1:28` `return ,@(...)`. Reproducido en PowerShell 5.1: vacío → `Count=0` (antes `$null`); una línea → `Object[]`; si git falla sigue devolviendo `$null` (falla abierto como antes). El test exige «arbol limpio; se continua.». |
-| NEW-001 | verificado-corregido | `atomic.py:166-212` `append_csv_log`: cuarentena `.corrupt.<UTC µs>`, error sin escribir si no puede apartar, detección de columnas desplazadas, unión de columnas. Callers: `calibrator.py:1001,1012,1111`; `prediction_gate.py:687` (bajo `locked()`); `revalidation.py:76`. Reproducido: 50 filas + 1 malformada → `.corrupt` con sha256 idéntico y log nuevo de 1 fila; 0 bytes sin cuarentena. Otros escritores del patrón (`team_totals_capture.py:178`, `odds_store.py:68`, `goalies.py:223`, `pitchers_capture.py:87`, `starters.py:66`) propagan `ParserError` (fallan en alto, sin pérdida). Sin traslado. |
-
-**Regresiones nuevas:** ninguna (no se asigna REG-003).
-
-**Observaciones no bloqueantes:**
-1. Punto ciego del detector de desplazamiento: si todas las filas traen un campo de más y la primera columna son enteros 0..n-1, se pierde una columna sin aviso (reproducido en temporal). No alcanzable en los logs cubiertos (primera columna `timestamp`); el comentario del código lo reconoce.
-2. Los escritores de `promotion_log.csv` siguen sin lock entre procesos (preexistente; el docstring lo delega en el llamador). Residual de concurrencia, no regresión.
-3. Filas del stream servido generadas en modo accuracy antes de `f5b80e2` no llevan la marca. Producción usa `picks.mode: edge` (`configs/default.yaml:200`): impacto esperado nulo; NOT_VERIFIABLE sin escanear `data/`.
-
-**Validación (comando → rc):**
-
-| Comando | Resultado | rc |
-|---|---|---|
-| pytest `test_audit_verif_regresiones`, `test_accuracy_mode`, `test_audit_log_concurrency`, `test_diario_espera_arbol` | 25 passed | 0 |
-| pytest `test_tipster`, `test_prediction_gate`, `test_revalidation`, `test_auto_promote`, `test_calibrator`, `test_calibration_registry_robustness`, `test_audit_atomic_readers`, `research/test_measure_tier_a_gap` | 305 passed | 0 |
-| `pytest -q -p no:cacheprovider -x -m "not slow and not heavy"` | 2738 passed, 778 deselected (36 min) | 0 |
-| `ruff check src scripts tests` | All checks passed | 0 |
-| `mypy src` | sin errores (116 ficheros) | 0 |
-
-No ejecutado: la parte slow/heavy de la suite (queda para el CI). Sin `NEW_REGRESSION`, `PRE_EXISTING_FAILURE` ni `ENVIRONMENTAL_FAILURE`.
-
-**Dictamen de la ronda:** **APTO CON PENDIENTES** (regla 3). No hay P0/P1 abierto ni regresión, y la evidencia de los tres IDs es suficiente. Siguen abiertos AUD-022 (P4, decisión del operador), el historial del Programador (AUD-007, operador), los residuales de AUD-014/016/018/019 y las observaciones 1-3. Este dictamen solo califica la remediación evaluada; no garantiza ausencia de defectos ni rentabilidad.
+1. **Operador:** decidir qué hacer con `mlb_spreads` y `wnba_spreads` (AUD-009): revalidar OOS y volver a promover con huella, o retirarlos.
+2. **Antes de reactivar `clv_gate`:** resolver lo que queda de AUD-011 (push y medias, `validate_book_contracts` al cierre, dedup por identidad anterior a KI-071).
+3. **Opcional (P4):**
+   - OBS-001: deduplicar `game_id` en `feature_shadow`, valorando antes el protocolo congelado.
+   - OBS-002: decidir si el respaldo histórico debe aceptar la orientación invertida con la misma guarda de consistencia que usó la reparación.
+4. **Persistentes:** habilitar el historial del Programador (consola elevada) y la decisión de AUD-022.
