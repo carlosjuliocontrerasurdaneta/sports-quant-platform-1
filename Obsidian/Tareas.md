@@ -12,8 +12,8 @@ Pendientes activos del proyecto, por prioridad. Al completar una: marcarla, anot
 
 Ver [[Bitácora/2026-11-25]].
 
-- [ ] **URGENTE, operador:** volver a apuntar las cinco tareas `SQP_*` de `C:\dev\3` a `C:\dev\1`. Hasta entonces no hay run diario ni captura de cierre.
-- [ ] **URGENTE, operador:** `origin/main` fue reescrito el 2026-11-25 (`c481717`, sin ancestro común). Decidir qué historial manda; hasta entonces, sin push, pull ni reset.
+- [ ] **URGENTE, operador:** volver a apuntar las cinco tareas `SQP_*` de `C:\dev\3` a `C:\dev\1`. Hasta entonces no hay run diario ni captura de cierre. Script: `scripts/repoint_tasks.ps1` (consola de administrador; probado solo con `-WhatIf`).
+- [x] 2026-11-25: `origin` de `dev/1` apunta a `sports-quant-platform-1` y el de `dev/2` a `sports-quant-platform-2` (nombres nuevos; el antiguo es otro repositorio).
 - [ ] Comprobar en el primer run diario que el historial de picks y los candidatos a staging se actualizan.
 
 ## Auditoría integral y remediación 2026-11-22 (ronda `audit-2026-11-22`)
