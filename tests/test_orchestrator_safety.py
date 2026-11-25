@@ -166,3 +166,14 @@ def test_refresh_prediction_gate_never_raises_and_reports_failure(monkeypatch,
     monkeypatch.setattr(mod, "ServedStore", _Store)
     assert mod._refresh_prediction_gate(tmp_path) is False
     assert not (tmp_path / "prediction_gate.json").exists()
+
+
+def test_fallo_del_historial_no_impide_reentrenar_calibradores():
+    """El historial y el reentrenamiento compartian un `try`: si el primero
+    fallaba (liga retirada), los candidatos dejaban de reentrenarse."""
+    import inspect
+    mod = _load_script("run_all")
+    src = inspect.getsource(mod.main)
+    entre = src[src.index("build_pick_history(settings"):
+                src.index("stage_calibrators_from_settled(settings)")]
+    assert "except Exception" in entre and "try:" in entre

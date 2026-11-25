@@ -79,3 +79,41 @@ def test_load_pick_history_missing_is_empty(tmp_path):
     df = load_pick_history(tmp_path / "nope.csv")
     assert df.empty
     assert list(df.columns) == patterns.HISTORY_COLS
+
+
+def test_build_pick_history_omite_liga_retirada_y_conserva_las_demas(
+        monkeypatch):
+    """Una liga retirada de la configuracion con cuotas aun en disco
+    (`frauen_bundesliga` desde el 2026-09-06) tumbaba el historial ENTERO."""
+    def meta(league):
+        if league == "retirada":
+            raise KeyError("Unknown league 'retirada'")
+        return {"family": "soccer", "league_params": {}}
+
+    class _Store:
+        def __init__(self, root):
+            pass
+
+        def load(self, league):
+            return [{"date": "2026-01-01"}]
+
+    class _Settings:
+        risk = None
+        bankroll = 1000.0
+
+    monkeypatch.setattr(patterns, "discover_leagues_with_odds",
+                        lambda root: ["retirada", "epl"])
+    monkeypatch.setattr(patterns, "load_closing_odds", lambda root, lg: {"e": 1})
+    monkeypatch.setattr(patterns, "ResultsStore", _Store)
+    monkeypatch.setattr(patterns, "_league_meta", meta)
+    monkeypatch.setattr(
+        patterns, "realized_roi_backtest",
+        lambda results, odds, league, *a, **k: {"settled": pd.DataFrame(
+            [{"league": league, "date": "2026-01-01", "market": "h2h"}])})
+    warned: list[str] = []
+    monkeypatch.setattr(patterns.log, "warning",
+                        lambda msg, *a: warned.append(msg % a))
+
+    hist = patterns.build_pick_history(_Settings(), write=False)
+    assert list(hist["league"]) == ["epl"]
+    assert any("retirada" in w for w in warned)

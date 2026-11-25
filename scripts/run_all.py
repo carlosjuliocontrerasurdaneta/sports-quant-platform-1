@@ -367,6 +367,11 @@ def main() -> int:
         try:
             hist = build_pick_history(settings, write=True)
             log.info("Historial consolidado de picks: %d picks", len(hist))
+        except Exception as exc:
+            log.warning("No se pudo construir el historial de picks: %s", exc)
+        # Bloque propio: los calibradores NO se entrenan con ese historial, asi
+        # que un fallo suyo no debe dejar sin reentrenar los candidatos.
+        try:
             # Retrain per-(league, market) calibrators as CANDIDATES for NEXT runs.
             # Trains on settled live bets UNION the graded served stream
             # (opening-anchored), NOT the closing-anchored backtest above. Today's
@@ -398,7 +403,7 @@ def main() -> int:
                     log.info("Auto-promoción OFF: candidatos en staging; usa "
                              "scripts/promote_calibration.py para revisar y promover")
         except Exception as exc:
-            log.warning("No se pudo construir el historial / recalibrar: %s", exc)
+            log.warning("No se pudieron reentrenar los calibradores candidatos: %s", exc)
         if not args.no_html:
             html_path = html_dashboard(pred_dir, ROOT / "data" / "bets")
             log.info("Dashboard HTML -> %s", html_path)

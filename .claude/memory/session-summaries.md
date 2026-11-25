@@ -1169,3 +1169,10 @@ Auditoría integral (segunda pasada, no ciega) sobre el árbol sucio. 4 hallazgo
 - AUD-005: 34 filas NCAAB re-liquidadas (`507a7af`). Residual AUD-009 de `health.py` corregido (`9054f9c`).
 - Verificación independiente (Fable 5.2, solo lectura) 2026-11-24: APTO CON PENDIENTES; sin regresiones; OBS-001/002 P4 opcionales. Ver `audit/latest/VERIFICATION.md` y `Obsidian/Bitácora/2026-11-24.md`.
 - Revisión general: ruff/mypy limpios, pip-audit sin CVE, tareas rc 0. Lección: la suite completa local tarda >1 h en 2 núcleos (CI ~10 min); `test_audit_log_concurrency` hace timeout con la CPU cargada y pasa aislado.
+
+## 2026-11-25 — Traslado del clon, historial de picks caído y remoto reescrito
+
+- Corregido: una liga retirada (`frauen_bundesliga`) tumbaba `build_pick_history` y, por compartir `try` en `run_all.py`, el reentrenamiento de candidatos; `health` avisa de tareas que apuntan a otro clon; rutas fijas a `C:\dev\3` en `instalar_sqp.py` y en el test de `rest_form`.
+- Suite rápida: 2970 passed, 2 skipped; `slow`/`heavy` no ejecutados. Ruff y mypy limpios. Sin comprobar en un run diario real.
+- **BLOQUEO:** `origin/main` fue reescrito (`c481717`, «Initial commit», sin ancestro común). Commit solo local, sin push: no hacer pull/reset/force sin decisión del operador.
+- Pendiente del operador: re-apuntar las cinco tareas `SQP_*` a `C:\dev\1`; `.claude/settings.local.json` con JSON inválido (lectura denegada a Claude). Detalle en `Obsidian/Bitácora/2026-11-25.md`.

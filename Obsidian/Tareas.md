@@ -1,12 +1,20 @@
 ---
 tags: [tareas, sqp]
 creada: 2026-07-08
-actualizada: 2026-11-24
+actualizada: 2026-11-25
 ---
 
 # Tareas
 
 Pendientes activos del proyecto, por prioridad. Al completar una: marcarla, anotar el commit y reflejar el cambio en la [[Bitácora]].
+
+## Traslado del clon (2026-11-25)
+
+Ver [[Bitácora/2026-11-25]].
+
+- [ ] **URGENTE, operador:** volver a apuntar las cinco tareas `SQP_*` de `C:\dev\3` a `C:\dev\1`. Hasta entonces no hay run diario ni captura de cierre.
+- [ ] **URGENTE, operador:** `origin/main` fue reescrito el 2026-11-25 (`c481717`, sin ancestro común). Decidir qué historial manda; hasta entonces, sin push, pull ni reset.
+- [ ] Comprobar en el primer run diario que el historial de picks y los candidatos a staging se actualizan.
 
 ## Auditoría integral y remediación 2026-11-22 (ronda `audit-2026-11-22`)
 

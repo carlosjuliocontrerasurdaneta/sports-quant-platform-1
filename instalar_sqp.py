@@ -10,7 +10,7 @@ import tomllib
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--project", type=Path, default=Path(r"C:\dev\3\sports-quant-platform"),
+    parser.add_argument("--project", type=Path, default=Path(__file__).resolve().parent,
                         help="Raíz del checkout de Sports Quant Platform.")
     parser.add_argument("--architect", type=Path, default=Path(r"C:\dev\superagent-architect"),
                         help="Raíz del checkout de superagent-architect.")

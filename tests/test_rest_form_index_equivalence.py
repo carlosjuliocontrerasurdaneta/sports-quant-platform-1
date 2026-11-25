@@ -823,7 +823,7 @@ def test_build_adjustment_context_accepts_matching_team_index():
 # Fragmento de datos REALES (se salta si no existe -- CI sin `data/historical`)
 # ===========================================================================
 
-MAIN_TREE = Path(r"C:\dev\3\sports-quant-platform")
+MAIN_TREE = Path(__file__).resolve().parents[1]
 
 
 def _load_real_slice(league: str, n_rows: int) -> list[dict]:

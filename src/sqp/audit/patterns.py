@@ -63,8 +63,16 @@ def build_pick_history(settings: Settings | None = None, *, write: bool = True,
         odds = load_closing_odds(ROOT, league)
         if not odds:
             continue
+        try:
+            meta = _league_meta(league)
+        except KeyError:
+            # Liga RETIRADA con cuotas aun en data/odds (no se borra lo
+            # capturado). Mismo criterio que `validate_oos._validar_liga`: sin
+            # este guard una sola liga tumbaba el historial de todas.
+            log.warning("[%s] liga no configurada (retirada?); se omite del "
+                        "historial de picks.", league)
+            continue
         results = ResultsStore(ROOT).load(league)
-        meta = _league_meta(league)
         if meta["family"] == "baseball":
             StartersStore(ROOT).attach(league, results)
         res = realized_roi_backtest(results, odds, league, meta["family"],

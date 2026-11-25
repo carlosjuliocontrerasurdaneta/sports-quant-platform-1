@@ -308,7 +308,9 @@ _TASKS_PS = (
     "$i = Get-ScheduledTaskInfo -TaskName $_.TaskName; "
     "[pscustomobject]@{Task=$_.TaskName; State=[string]$_.State; "
     "LastRun=$(if ($i.LastRunTime) { $i.LastRunTime.ToString('o') } else { $null }); "
-    "LastResult=[int64]$i.LastTaskResult; Missed=[int]$i.NumberOfMissedRuns} }); "
+    "LastResult=[int64]$i.LastTaskResult; Missed=[int]$i.NumberOfMissedRuns; "
+    "Action=[string](($_.Actions | ForEach-Object { "
+    "$_.Execute + ' ' + $_.Arguments }) -join ' ; ')} }); "
     "[pscustomobject]@{history_enabled=$h; tasks=$t} | ConvertTo-Json -Depth 3 -Compress"
 )
 
@@ -337,8 +339,18 @@ def _scheduled_tasks_raw(timeout_s: float = SCHEDULED_TASKS_TIMEOUT_S) -> str | 
     return r.stdout
 
 
+def _action_outside_root(action: object, root: Path | str | None) -> bool:
+    """True si la accion de la tarea no menciona ninguna ruta bajo ``root``.
+    Sin accion o sin ``root`` no se puede juzgar: False."""
+    if not action or root is None:
+        return False
+    prefix = str(root).replace("/", "\\").rstrip("\\").lower() + "\\"
+    return prefix not in str(action).replace("/", "\\").lower()
+
+
 def scheduled_tasks_status(raw: str | None, *, now: datetime | None = None,
-                           max_age_days: float = RUN_MAX_AGE_DAYS) -> dict:
+                           max_age_days: float = RUN_MAX_AGE_DAYS,
+                           root: Path | str | None = None) -> dict:
     """Estado observado de las tareas programadas y los avisos que merece.
 
     COMPLEMENTA a `pipeline_liveness`, que mira los ARTEFACTOS: aquel dice que
@@ -352,6 +364,10 @@ def scheduled_tasks_status(raw: str | None, *, now: datetime | None = None,
     ``raw`` es el JSON de `_scheduled_tasks_raw` (inyectable en tests). Sin
     acceso al Programador se devuelve ``available=False`` y un aviso: "no se
     pudo comprobar" no es "esta bien".
+
+    Con ``root`` avisa ademas de las tareas cuya accion apunta fuera de este
+    clon: al mover el proyecto de `C:/dev/3` a `C:/dev/1` (2026-11-25) las
+    cinco quedaron con la ruta vieja y dejaron de arrancar (0x8007010B).
     """
     now = now or datetime.now(timezone.utc)
     out: dict = {"available": False, "history_enabled": None, "tasks": {},
@@ -400,6 +416,10 @@ def scheduled_tasks_status(raw: str | None, *, now: datetime | None = None,
         entry = {"state": t.get("State"), "last_run": last.isoformat() if last else None,
                  "last_result": rc, "missed": t.get("Missed")}
         out["tasks"][name] = entry
+        if _action_outside_root(t.get("Action"), root):
+            out["warnings"].append(
+                f"{name}: la accion apunta fuera de este proyecto ({root}): "
+                f"{str(t['Action']).strip()}")
         if rc not in (None, 0, _TASK_RUNNING):
             out["warnings"].append(f"{name}: ultimo resultado 0x{rc:X}")
         if name == DAILY_TASK:
@@ -501,7 +521,7 @@ def generate_health_report(root: Path = ROOT) -> dict:
     # no de un arbol temporal, y consultar PowerShell en cada test seria lento
     # y dependeria del estado de la maquina.
     import os as _os
-    tareas = (scheduled_tasks_status(_scheduled_tasks_raw())
+    tareas = (scheduled_tasks_status(_scheduled_tasks_raw(), root=root)
               if _os.name == "nt" and Path(root).resolve() == Path(ROOT).resolve()
               else {"available": False, "history_enabled": None, "tasks": {},
                     "warnings": []})

@@ -106,3 +106,41 @@ def test_consulta_del_programador_usa_plazo_amplio_y_tolera_timeout(monkeypatch)
 
     monkeypatch.setattr(subprocess, "run", lambda *a, **kw: _Ok())
     assert health._scheduled_tasks_raw() == _Ok.stdout
+
+
+# --- Tareas que apuntan a otro clon (2026-11-25) ---
+
+def _raw_accion(accion):
+    raw = json.loads(_raw())
+    for t in raw["tasks"]:
+        t["Action"] = accion
+    return json.dumps(raw)
+
+
+def test_tarea_que_apunta_a_otro_clon_avisa():
+    """Al mover el clon las tareas se quedaron con la ruta vieja: no arrancan
+    (0x8007010B) y nada decia por que."""
+    out = scheduled_tasks_status(
+        _raw_accion(r"C:\dev\3\sqp\DIARIO_COMPLETO.bat"),
+        now=NOW, root=r"C:\dev\1\sqp")
+    avisos = [w for w in out["warnings"] if "fuera de este proyecto" in w]
+    assert len(avisos) == len(SCHEDULED_TASKS)
+
+
+def test_tarea_de_este_clon_no_avisa_ni_distingue_mayusculas():
+    out = scheduled_tasks_status(
+        _raw_accion(r'powershell.exe -File "c:\DEV\1\sqp\scripts\x.ps1"'),
+        now=NOW, root=r"C:\dev\1\sqp")
+    assert out["warnings"] == []
+
+
+def test_ruta_que_solo_comparte_prefijo_avisa():
+    out = scheduled_tasks_status(
+        _raw_accion(r"C:\dev\1\sqp-old\DIARIO_COMPLETO.bat"),
+        now=NOW, root=r"C:\dev\1\sqp")
+    assert any("fuera de este proyecto" in w for w in out["warnings"])
+
+
+def test_sin_accion_o_sin_root_no_se_juzga():
+    assert scheduled_tasks_status(_raw(), now=NOW, root=r"C:\dev\1\sqp")["warnings"] == []
+    assert scheduled_tasks_status(_raw_accion(r"C:\otro\x.bat"), now=NOW)["warnings"] == []
