@@ -37,6 +37,15 @@ if not exist logs mkdir logs
 call scripts\rotate_log.cmd logs\diario_completo.log
 call :log "=== SQP - DIARIO COMPLETO (%DATE% %TIME%) ==="
 
+REM ANTI-SUSPENSION (2026-11-25). Ese dia la maquina se suspendio de 18:18 a
+REM 21:23 en mitad del run (WakeToRun despierta para arrancar, no impide volver
+REM a dormirse). scripts\keep_awake.ps1 pide ES_SYSTEM_REQUIRED mientras viva
+REM este cmd (tope 12 h), sin elevacion y sin tocar el plan de energia. Corre en
+REM segundo plano con su PROPIO log: compartir diario_completo.log bloquearia
+REM los `>>` de este BAT. Si falta el script o falla, el flujo sigue igual.
+REM Escape:  set SQP_NO_KEEP_AWAKE=1
+if not defined SQP_NO_KEEP_AWAKE if exist "%~dp0scripts\keep_awake.ps1" start "" /b powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\keep_awake.ps1" > logs\keep_awake.log 2>&1
+
 REM [0/3] GUARD DE ARBOL LIMPIO (KI-036, opcion (b), orden del operador 2026-09-06).
 REM
 REM La tarea programada apunta al ARBOL DE TRABAJO, asi que produccion ejecuta lo

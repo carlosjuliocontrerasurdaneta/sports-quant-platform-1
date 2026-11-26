@@ -1176,3 +1176,9 @@ Auditoría integral (segunda pasada, no ciega) sobre el árbol sucio. 4 hallazgo
 - Suite rápida: 2970 passed, 2 skipped; `slow`/`heavy` no ejecutados. Ruff y mypy limpios. Sin comprobar en un run diario real.
 - Remoto renombrado por el operador: el historial está en `sports-quant-platform-1` (`main` = `54e71e9`). El nombre antiguo es otro repositorio (`c481717`) y `origin` sigue apuntando a él: cambiar la URL antes de push/pull.
 - Pendiente del operador: re-apuntar las cinco tareas `SQP_*` a `C:\dev\1`; `.claude/settings.local.json` con JSON inválido (lectura denegada a Claude). Detalle en `Obsidian/Bitácora/2026-11-25.md`.
+
+## 2026-11-25 (tarde) — Anti-suspensión del run diario
+
+- Corregido: la máquina se suspendió de 18:18 a 21:23 en mitad de `DIARIO_COMPLETO`. Nuevo `scripts/keep_awake.ps1` (`ES_SYSTEM_REQUIRED` mientras viva el `cmd` del BAT, tope 12 h, sin elevación); el BAT lo lanza en segundo plano con log propio. Escape `SQP_NO_KEEP_AWAKE=1`.
+- Verificado: rc 0 y salida al morir el padre (también vía `start /b`); 37 tests de BAT pasan. Falta verlo en un run programado real.
+- Abierto: decenas de avisos `contratos de casa incompletos o inválidos` por evento NCAAF; sin clasificar porque la lectura de `data/odds` está bloqueada en la sesión. Detalle en `Obsidian/Bitácora/2026-11-25.md`.
