@@ -1182,3 +1182,9 @@ Auditoría integral (segunda pasada, no ciega) sobre el árbol sucio. 4 hallazgo
 - Corregido: la máquina se suspendió de 18:18 a 21:23 en mitad de `DIARIO_COMPLETO`. Nuevo `scripts/keep_awake.ps1` (`ES_SYSTEM_REQUIRED` mientras viva el `cmd` del BAT, tope 12 h, sin elevación); el BAT lo lanza en segundo plano con log propio. Escape `SQP_NO_KEEP_AWAKE=1`.
 - Verificado: rc 0 y salida al morir el padre (también vía `start /b`); 37 tests de BAT pasan. Falta verlo en un run programado real.
 - Abierto: decenas de avisos `contratos de casa incompletos o inválidos` por evento NCAAF; sin clasificar porque la lectura de `data/odds` está bloqueada en la sesión. Detalle en `Obsidian/Bitácora/2026-11-25.md`.
+
+## 2026-11-27 — Tareas programadas recuperadas con una unión de directorio
+
+- Las tareas `SQP_*` no se ejecutaban desde el 25-11 (`C:\dev\3` inexistente). Sin admin para `repoint_tasks.ps1`: unión `C:\dev\3\sports-quant-platform` → `C:\dev\1` como puente; verificada con la captura de las 10:00.
+- Nota de doble regresión Elo: caducada (guarda en `elo.py:94`). Suite rápida 2975 passed; ruff/mypy limpios.
+- Pendiente del operador: `repoint_tasks.ps1` como administrador y luego `rmdir` de la unión. Detalle en `Obsidian/Bitácora/2026-11-27.md`.
