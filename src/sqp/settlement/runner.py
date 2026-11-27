@@ -1036,10 +1036,22 @@ def fetch_and_settle(league: str, settings: Settings, days_from: int = 2,
     # day; a single healthy response resumes the expiry policy.
     scores_trusted = bool(scores)
     if not scores_trusted and (not pending_served.empty or cand_path.exists()):
-        log.error("[%s] scores response carried no usable entry (%d raw): NOT "
-                  "voiding anything this pass. Voiding is irreversible, so an "
-                  "empty payload must not be read as mass cancellation.",
-                  league, len(raw) if raw is not None else 0)
+        # Same gate either way; only the severity differs. A payload that lists
+        # games but none `completed` is the normal shape of an international
+        # break or an off-day: logging it as ERROR every day buried the real
+        # alarms (empty list, or completed entries that failed to parse).
+        n_raw = len(raw) if raw is not None else 0
+        n_completed = sum(1 for s in (raw or [])
+                          if isinstance(s, dict) and s.get("completed"))
+        if n_raw and not n_completed:
+            log.info("[%s] scores response lists %d game(s), none completed: "
+                     "nothing to grade and NOT voiding anything this pass.",
+                     league, n_raw)
+        else:
+            log.error("[%s] scores response carried no usable entry (%d raw, "
+                      "%d completed): NOT voiding anything this pass. Voiding "
+                      "is irreversible, so an empty payload must not be read "
+                      "as mass cancellation.", league, n_raw, n_completed)
     # Calibration stream first (stake 0, best-effort): shares this scores fetch,
     # and grades even on days the league produced no candidates.
     if not pending_served.empty:

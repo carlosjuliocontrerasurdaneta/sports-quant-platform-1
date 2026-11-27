@@ -96,3 +96,37 @@ def test_healthy_scores_response_still_voids_the_stale_row(tmp_path, monkeypatch
     row = out.iloc[0]
     assert row["result"] == "void" and row["pnl"] == 0.0
     assert "stale_void" in str(row["flags"])
+
+
+def test_no_completed_games_is_info_not_error(tmp_path, monkeypatch, caplog):
+    """An international break or off-day: /scores lists games, none completed.
+    Same gate (nothing voided), but it is not a payload fault, so it must not
+    raise an ERROR every day and bury the real alarms."""
+    import logging
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    _write_inputs(tmp_path)
+    upcoming = [{"id": f"u{i}", "completed": False, "home_team": "C",
+                 "away_team": "D", "scores": None,
+                 "commence_time": NOW.strftime("%Y-%m-%dT%H:%M:%SZ")}
+                for i in range(3)]
+    with caplog.at_level(logging.INFO, logger=runner.log.name):
+        out = fetch_and_settle(LEAGUE, Settings(), days_from=3,
+                               client=FakeClient(upcoming))
+    assert out.empty and _settled_rows(tmp_path).empty
+    msgs = [r for r in caplog.records if "none completed" in r.getMessage()]
+    assert msgs and all(r.levelno == logging.INFO for r in msgs)
+    assert not [r for r in caplog.records if r.levelno >= logging.ERROR
+                and "no usable entry" in r.getMessage()]
+
+
+def test_completed_but_unparseable_stays_error(tmp_path, monkeypatch, caplog):
+    import logging
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    _write_inputs(tmp_path)
+    broken = [{"id": "x", "completed": True, "home_team": "C",
+               "away_team": "D", "scores": [{"name": "Z", "score": "1"}]}]
+    with caplog.at_level(logging.INFO, logger=runner.log.name):
+        fetch_and_settle(LEAGUE, Settings(), days_from=3,
+                         client=FakeClient(broken))
+    assert [r for r in caplog.records if r.levelno == logging.ERROR
+            and "no usable entry" in r.getMessage()]
